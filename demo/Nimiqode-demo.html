@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Nimiqode Demo</title>
+    <script src="../src/BitArray.js"></script>
+    <script src="../src/Point.js"></script>
+    <script src="../src/Line.js"></script>
+    <script src="../src/Arc.js"></script>
+    <script src="../src/HexagonRing.js"></script>
+    <script src="../src/HexagonRingRenderer.js"></script>
+    <script src="../src/NimiqodeSpecification.js"></script>
+    <script src="../src/Nimiqode.js"></script>
+</head>
+<body>
+<canvas id="canvas" width="800" height="800"></canvas><br>
+<textarea id="textarea-data">Hello world.</textarea>
+Ring distance: <input id="input-ring-distance" type="range" min="3" max="50" step="any" value="20"><br>
+Rotation: <input id="input-rotation" type="range" min="0" max="2" step="any" value="0"><br>
+Scale: <input id="input-scale" type="range" min="0.5" max="1.5" step="any" value="1"><br>
+<script>
+    const canvas = document.getElementById('canvas');
+    const textEncoder = new TextEncoder('utf-8');
+    let nimiqode;
+
+    function render() {
+        const data = textEncoder.encode(document.getElementById('textarea-data').value);
+        NimiqodeSpecification.HEXRING_RING_DISTANCE = parseFloat(document.getElementById('input-ring-distance').value);
+        nimiqode = new Nimiqode(data);
+
+        const rotation = parseFloat(document.getElementById('input-rotation').value) * Math.PI;
+        const scaleFactor = parseFloat(document.getElementById('input-scale').value);
+
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+        nimiqode.render(canvas, 'lightblue', new Point(canvas.width/2, canvas.height/2), scaleFactor, rotation);
+    }
+
+    document.querySelectorAll('input').forEach(input => input.addEventListener('input', render));
+    document.querySelector('textarea').addEventListener('input', render);
+
+    render();
+</script>
+</body>
+</html>

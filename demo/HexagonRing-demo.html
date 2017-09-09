@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hexagon Ring Demo</title>
+    <script src="../src/BitArray.js"></script>
+    <script src="../src/Point.js"></script>
+    <script src="../src/Line.js"></script>
+    <script src="../src/Arc.js"></script>
+    <script src="../src/HexagonRing.js"></script>
+    <script src="../src/HexagonRingRenderer.js"></script>
+</head>
+<body>
+    <canvas id="canvas" width="800" height="800"></canvas><br>
+    Hexagon inner radius: <input id="input-inner-radius" value="300" type="number"><br>
+    Border radius: <input id="input-border-radius" value="50" type="number" min="1"><br>
+    Line width: <input id="input-line-width" value="10" type="number" min="1"><br>
+    Start/end offset: <input id="input-start-end-offset" value="30" type="number"><br>
+    Slot length: <input id="input-slot-length" value="10" type="number"><br>
+    Additional slot distance: <input id="input-slot-distance" value="0" type="number"><br>
+    Rotation: <input id="input-rotation" type="range" min="0" max="2" step="any" value="0"><br>
+    Scale: <input id="input-scale" type="range" min="0.5" max="1.5" step="any" value="1"><br>
+    Show rounded corner center points: <input id="input-show-arc-centers" type="checkbox" checked><br>
+    <div id="infoBitCount"></div>
+    <button id="cycleAllSlotsBtn">Cycle trough all positions</button>
+    <button id="alternatingDataBtn">Show alternating pattern</button>
+    <button id="randomPositionsBtn">Assign random data</button>
+    <script>
+        const canvas = document.getElementById('canvas');
+        let hexRing, data, scaleFactor, rotation, showCornerCenters;
+
+        function init() {
+            hexRing = new HexagonRing(
+                parseFloat(document.getElementById('input-inner-radius').value),
+                parseFloat(document.getElementById('input-border-radius').value),
+                parseFloat(document.getElementById('input-start-end-offset').value),
+                parseFloat(document.getElementById('input-slot-distance').value),
+                parseFloat(document.getElementById('input-slot-length').value)
+            );
+            data = new BitArray(hexRing.numSlots);
+            hexRing.data = data;
+
+            rotation = parseFloat(document.getElementById('input-rotation').value) * Math.PI;
+            scaleFactor = parseFloat(document.getElementById('input-scale').value);
+            showCornerCenters = document.getElementById('input-show-arc-centers').checked;
+
+            document.getElementById('infoBitCount').textContent = hexRing.numSlots + ' bits in hexagon ring.';
+
+            showAlternatingPattern();
+        }
+
+        function drawCornerArcCenters(context) {
+            // draw the corner centers for testing
+            context.fillStyle = 'purple';
+            for (const arc of hexRing._hexagonCornerArcs) {
+                const center = arc.center.transform(rotation,scaleFactor,canvas.width/2, canvas.height/2);
+                context.fillRect(center.x-2, center.y-2, 4, 4);
+            }
+        }
+
+        function renderhexagonRing() {
+            const context = canvas.getContext('2d');
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            HexagonRingRenderer.renderHexagonRing(canvas, hexRing, 'lightblue',
+                parseFloat(document.getElementById('input-line-width').value),
+                new Point(canvas.width/2, canvas.height/2), scaleFactor, rotation);
+
+            if (showCornerCenters) {
+                drawCornerArcCenters(context);
+            }
+        }
+
+        let animationStep=0;
+        let animationTimer = null;
+        function doAnimationStep() {
+            if (animationStep < hexRing.numSlots) {
+                data.setBit(animationStep);
+            } else {
+                data.unsetBit(animationStep - hexRing.numSlots);
+            }
+            if (animationStep === 2 * hexRing.numSlots-1) {
+                animationStep = 0;
+            } else {
+                animationStep++;
+            }
+
+            renderhexagonRing();
+        }
+
+
+        function startCycleAnimation() {
+            clearInterval(animationTimer);
+            animationTimer = setInterval(doAnimationStep, 50);
+        }
+
+
+        function showAlternatingPattern() {
+            clearInterval(animationTimer);
+            for (let i=0; i<hexRing.numSlots; ++i) {
+                if (i % 2 === 0) {
+                    data.setBit(i);
+                } else {
+                    data.unsetBit(i);
+                }
+            }
+            renderhexagonRing();
+        }
+
+
+        function showRandomData() {
+            clearInterval(animationTimer);
+            for (let i=0; i<hexRing.numSlots; ++i) {
+                if (Math.random() > 0.5) {
+                    data.setBit(i);
+                } else {
+                    data.unsetBit(i);
+                }
+            }
+            renderhexagonRing();
+        }
+
+
+        document.getElementById('cycleAllSlotsBtn').addEventListener('click', startCycleAnimation);
+        document.getElementById('randomPositionsBtn').addEventListener('click', showRandomData);
+        document.getElementById('alternatingDataBtn').addEventListener('click', showAlternatingPattern);
+
+        document.querySelectorAll('input').forEach(input => input.addEventListener('input', init));
+
+        init();
+        startCycleAnimation();
+    </script>
+</body>
+</html>
