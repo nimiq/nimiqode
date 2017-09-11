@@ -21,7 +21,7 @@ class HexagonRingRenderer {
         context.save();
         context.strokeStyle = strokeColor;
         context.lineCap = 'butt';
-        context.lineWidth = strokeWidth;
+        context.lineWidth = strokeWidth * scaleFactor;
 
         let index = 0;
         while (index < hexagonRing.numSlots) {

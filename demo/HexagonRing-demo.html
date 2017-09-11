@@ -11,20 +11,33 @@
     <script src="../src/HexagonRingRenderer.js"></script>
 </head>
 <body>
-    <canvas id="canvas" width="800" height="800"></canvas><br>
-    Hexagon inner radius: <input id="input-inner-radius" value="300" type="number"><br>
-    Border radius: <input id="input-border-radius" value="50" type="number" min="1"><br>
-    Line width: <input id="input-line-width" value="10" type="number" min="1"><br>
-    Start/end offset: <input id="input-start-end-offset" value="30" type="number"><br>
-    Slot length: <input id="input-slot-length" value="10" type="number"><br>
-    Additional slot distance: <input id="input-slot-distance" value="0" type="number"><br>
-    Rotation: <input id="input-rotation" type="range" min="0" max="2" step="any" value="0"><br>
-    Scale: <input id="input-scale" type="range" min="0.5" max="1.5" step="any" value="1"><br>
-    Show rounded corner center points: <input id="input-show-arc-centers" type="checkbox" checked><br>
-    <div id="infoBitCount"></div>
-    <button id="cycleAllSlotsBtn">Cycle trough all positions</button>
-    <button id="alternatingDataBtn">Show alternating pattern</button>
-    <button id="randomPositionsBtn">Assign random data</button>
+    <style>
+        @media (min-width: 1200px) {
+            #container {
+                display: flex;
+                justify-content: space-around;
+                align-items: center;
+            }
+        }
+    </style>
+    <div id="container">
+        <canvas id="canvas" width="800" height="800"></canvas><br>
+        <div>
+            Hexagon inner radius: <input id="input-inner-radius" value="300" type="number"><br>
+            Border radius: <input id="input-border-radius" value="50" type="number" min="1"><br>
+            Line width: <input id="input-line-width" value="10" type="number" min="1"><br>
+            Start/end offset: <input id="input-start-end-offset" value="30" type="number"><br>
+            Slot length: <input id="input-slot-length" value="10" type="number"><br>
+            Additional slot distance: <input id="input-slot-distance" value="0" type="number"><br>
+            Rotation: <input id="input-rotation" type="range" min="0" max="2" step="any" value="0"><br>
+            Scale: <input id="input-scale" type="range" min="0.5" max="1.5" step="any" value="1"><br>
+            Show rounded corner center points: <input id="input-show-arc-centers" type="checkbox" checked><br>
+            <div id="infoBitCount"></div>
+            <button id="cycleAllSlotsBtn">Cycle trough all positions</button>
+            <button id="alternatingDataBtn">Show alternating pattern</button>
+            <button id="randomPositionsBtn">Assign random data</button>
+        </div>
+    </div>
     <script>
         const canvas = document.getElementById('canvas');
         let hexRing, data, scaleFactor, rotation, showCornerCenters;
@@ -125,9 +138,9 @@
         document.getElementById('alternatingDataBtn').addEventListener('click', showAlternatingPattern);
 
         document.querySelectorAll('input').forEach(input => input.addEventListener('input', init));
+        document.getElementById('input-show-arc-centers').addEventListener('change', init);
 
         init();
-        startCycleAnimation();
     </script>
 </body>
 </html>

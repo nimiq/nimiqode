@@ -13,19 +13,59 @@
     <script src="../src/Nimiqode.js"></script>
 </head>
 <body>
-<canvas id="canvas" width="800" height="800"></canvas><br>
-<textarea id="textarea-data">Hello world.</textarea>
-Ring distance: <input id="input-ring-distance" type="range" min="3" max="50" step="any" value="20"><br>
-Rotation: <input id="input-rotation" type="range" min="0" max="2" step="any" value="0"><br>
-Scale: <input id="input-scale" type="range" min="0.5" max="1.5" step="any" value="1"><br>
+<style>
+    @media (min-width: 1200px) {
+        #container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+    }
+</style>
+<div id="container">
+    <canvas id="canvas" width="800" height="800"></canvas><br>
+    <div>
+        <textarea id="textarea-data">Hello world.</textarea><br>
+        <div id="info-data-length"></div>
+        Ring distance: <input id="input-ring-distance" type="number"><br>
+        Hexagon inner radius: <input id="input-inner-radius" type="number"><br>
+        Border radius: <input id="input-border-radius" type="number" min="1"><br>
+        Line width: <input id="input-line-width" type="number" min="1"><br>
+        Start/end offset: <input id="input-start-end-offset" type="number"><br>
+        Slot length: <input id="input-slot-length" type="number"><br>
+        Additional slot distance: <input id="input-slot-distance" type="number"><br>
+        Rotation: <input id="input-rotation" type="range" min="0" max="2" step="any" value="0"><br>
+        Scale: <input id="input-scale" type="range" min="0.5" max="1.5" step="any" value="1">
+    </div>
+</div>
 <script>
     const canvas = document.getElementById('canvas');
     const textEncoder = new TextEncoder('utf-8');
     let nimiqode;
 
+    // read the initial defaults
+    document.getElementById('input-ring-distance').value = NimiqodeSpecification.HEXRING_RING_DISTANCE;
+    document.getElementById('input-inner-radius').value = NimiqodeSpecification.HEXRING_INNERMOST_RADIUS;
+    document.getElementById('input-border-radius').value = NimiqodeSpecification.HEXRING_BORDER_RADIUS;
+    document.getElementById('input-line-width').value = NimiqodeSpecification.HEXRING_LINE_WIDTH;
+    document.getElementById('input-start-end-offset').value = NimiqodeSpecification.HEXRING_START_END_OFFSET;
+    document.getElementById('input-slot-length').value = NimiqodeSpecification.HEXRING_SLOT_LENGTH;
+    document.getElementById('input-slot-distance').value = NimiqodeSpecification.HEXRING_ADDITIONAL_SLOT_DISTANCE;
+
     function render() {
         const data = textEncoder.encode(document.getElementById('textarea-data').value);
+        document.getElementById('info-data-length').textContent = `Data length: ${data.byteLength}`;
+
         NimiqodeSpecification.HEXRING_RING_DISTANCE = parseFloat(document.getElementById('input-ring-distance').value);
+        NimiqodeSpecification.HEXRING_INNERMOST_RADIUS =
+            parseFloat(document.getElementById('input-inner-radius').value);
+        NimiqodeSpecification.HEXRING_BORDER_RADIUS = parseFloat(document.getElementById('input-border-radius').value);
+        NimiqodeSpecification.HEXRING_LINE_WIDTH = parseFloat(document.getElementById('input-line-width').value);
+        NimiqodeSpecification.HEXRING_START_END_OFFSET =
+            parseFloat(document.getElementById('input-start-end-offset').value);
+        NimiqodeSpecification.HEXRING_SLOT_LENGTH = parseFloat(document.getElementById('input-slot-length').value);
+        NimiqodeSpecification.HEXRING_ADDITIONAL_SLOT_DISTANCE =
+            parseFloat(document.getElementById('input-slot-distance').value);
         nimiqode = new Nimiqode(data);
 
         const rotation = parseFloat(document.getElementById('input-rotation').value) * Math.PI;
