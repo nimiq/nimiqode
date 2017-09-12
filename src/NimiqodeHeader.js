@@ -12,20 +12,24 @@ class NimiqodeHeader {
 
 
     static write(bitArray, version, payloadLength, errorCorrectionLength, hexRingMasks) {
+        if (payloadLength % 8 !== 0 || errorCorrectionLength % 8 !== 0) {
+            throw Error('Only whole bytes allowed for payload and error correction codes.');
+        }
         let writeIndex = 0;
         // version
-        bitArray.writeUnsignedInteger(version, NimiqodeSpecification.HEADER_LENGTH_VERSION, writeIndex);
+        bitArray.writeUnsignedInteger(writeIndex, version, NimiqodeSpecification.HEADER_LENGTH_VERSION);
         writeIndex += NimiqodeSpecification.HEADER_LENGTH_VERSION;
-        // write the payload length
-        bitArray.writeUnsignedInteger(payloadLength, NimiqodeSpecification.HEADER_LENGTH_PAYLOAD_LENGTH, writeIndex);
+        // write the payload length in byte (subtracting one to map allowed lengths [1..256] to [0..255])
+        bitArray.writeUnsignedInteger(writeIndex, payloadLength / 8 - 1,
+            NimiqodeSpecification.HEADER_LENGTH_PAYLOAD_LENGTH);
         writeIndex += NimiqodeSpecification.HEADER_LENGTH_PAYLOAD_LENGTH;
-        // write the error correction length
-        bitArray.writeUnsignedInteger(errorCorrectionLength,
-            NimiqodeSpecification.HEADER_LENGTH_ERROR_CORRECTION_LENGTH, writeIndex);
+        // write the error correction length in byte
+        bitArray.writeUnsignedInteger(writeIndex, errorCorrectionLength / 8,
+            NimiqodeSpecification.HEADER_LENGTH_ERROR_CORRECTION_LENGTH);
         writeIndex += NimiqodeSpecification.HEADER_LENGTH_ERROR_CORRECTION_LENGTH;
         // write the hex ring masks
         for (const hexRingMask of hexRingMasks) {
-            bitArray.writeUnsignedInteger(hexRingMask, NimiqodeSpecification.HEADER_LENGTH_HEXRING_MASK, writeIndex);
+            bitArray.writeUnsignedInteger(writeIndex, hexRingMask, NimiqodeSpecification.HEADER_LENGTH_HEXRING_MASK);
             writeIndex += NimiqodeSpecification.HEADER_LENGTH_HEXRING_MASK;
         }
         // write the header error correction

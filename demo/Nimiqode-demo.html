@@ -81,11 +81,10 @@
         NimiqodeRenderer.render(canvas, nimiqode, 'lightblue', new Point(canvas.width/2, canvas.height/2), scaleFactor,
             rotation);
 
+        const preliminaryErrorCorrectionLength = Math.ceil(nimiqode._payload.length / 8 * errorCorrectionFactor) * 8;
         document.getElementById('info-data-length').textContent = `Data length: ${nimiqode._payload.length}
-            (${data.byteLength} byte), Error encoding length:
-            ${Math.ceil(nimiqode._payload.length * errorCorrectionFactor)} +
-            ${nimiqode._errorCorrectionData.length - Math.ceil(nimiqode._payload.length * errorCorrectionFactor)}
-            filling up free space`;
+            (${data.byteLength} byte), Error encoding length: ${preliminaryErrorCorrectionLength} +
+            ${nimiqode._errorCorrectionData.length - preliminaryErrorCorrectionLength} filling up free space`;
     }
 
     document.querySelectorAll('input').forEach(input => input.addEventListener('input', render));

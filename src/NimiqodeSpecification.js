@@ -15,8 +15,8 @@ NimiqodeSpecification.HEXRING_START_END_OFFSET = 20;
 
 // header
 NimiqodeSpecification.HEADER_LENGTH_VERSION = 4;
-NimiqodeSpecification.HEADER_LENGTH_PAYLOAD_LENGTH = 11;
-NimiqodeSpecification.HEADER_LENGTH_ERROR_CORRECTION_LENGTH = 13; // length can be 4 times as high as data length (two
+NimiqodeSpecification.HEADER_LENGTH_PAYLOAD_LENGTH = 8; // specified in bytes, interpreted as values [1..256]
+NimiqodeSpecification.HEADER_LENGTH_ERROR_CORRECTION_LENGTH = 10; // length can be 4 times as high as data length (two
 // bits more) to account for error correction factors > 1 and extra error correction data to fill up the last hex ring
 NimiqodeSpecification.HEADER_LENGTH_HEXRING_MASK = 2; // times the number of hexagon rings
 NimiqodeSpecification.HEADER_FACTOR_ERROR_CORRECTION_HEADER = 1; // this is a fixed number and part of the specification

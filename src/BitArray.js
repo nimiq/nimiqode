@@ -197,11 +197,11 @@ class BitArray {
 
     /**
      * Write an unsigned int to the BitArray into numBits bits.
+     * @param {number} index
      * @param {number} value
      * @param {number} numBits
-     * @param {number} index
      */
-    writeUnsignedInteger(value, numBits=8, index=0) {
+    writeUnsignedInteger(index, value, numBits=8) {
         if (numBits < 1 || numBits > 32) {
             // Note that although javascript stores numbers in 64 bits, bit wise operators operate only on 32 bits
             throw Error('Unsupported number of bits');
@@ -222,6 +222,10 @@ class BitArray {
     }
 
 
+    /**
+     * Read the whole BitArray to an array of 1s and 0s.
+     * @returns {Array.<number>}
+     */
     toArray() {
         let result = new Array(this._length);
         for (let i=0; i<this._length; ++i) {
