@@ -9,8 +9,11 @@
     <script src="../src/Arc.js"></script>
     <script src="../src/HexagonRing.js"></script>
     <script src="../src/HexagonRingRenderer.js"></script>
+    <script src="../src/error-correction/ldpc.js"></script>
     <script src="../src/NimiqodeSpecification.js"></script>
+    <script src="../src/NimiqodeHeader.js"></script>
     <script src="../src/Nimiqode.js"></script>
+    <script src="../src/NimiqodeRenderer.js"></script>
 </head>
 <body>
 <style>
@@ -27,6 +30,7 @@
     <div>
         <textarea id="textarea-data">Hello world.</textarea><br>
         <div id="info-data-length"></div>
+        Error correction factor: <input id="input-error-correction-factor" type="range" min="0" max="2" step="any"><br>
         Ring distance: <input id="input-ring-distance" type="number"><br>
         Hexagon inner radius: <input id="input-inner-radius" type="number"><br>
         Border radius: <input id="input-border-radius" type="number" min="1"><br>
@@ -43,7 +47,9 @@
     const textEncoder = new TextEncoder('utf-8');
     let nimiqode;
 
-    // read the initial defaults
+    // write the initial defaults
+    document.getElementById('input-error-correction-factor').value =
+        NimiqodeSpecification.DEFAULT_FACTOR_ERROR_CORRECTION_DATA;
     document.getElementById('input-ring-distance').value = NimiqodeSpecification.HEXRING_RING_DISTANCE;
     document.getElementById('input-inner-radius').value = NimiqodeSpecification.HEXRING_INNERMOST_RADIUS;
     document.getElementById('input-border-radius').value = NimiqodeSpecification.HEXRING_BORDER_RADIUS;
@@ -54,7 +60,6 @@
 
     function render() {
         const data = textEncoder.encode(document.getElementById('textarea-data').value);
-        document.getElementById('info-data-length').textContent = `Data length: ${data.byteLength}`;
 
         NimiqodeSpecification.HEXRING_RING_DISTANCE = parseFloat(document.getElementById('input-ring-distance').value);
         NimiqodeSpecification.HEXRING_INNERMOST_RADIUS =
@@ -66,13 +71,21 @@
         NimiqodeSpecification.HEXRING_SLOT_LENGTH = parseFloat(document.getElementById('input-slot-length').value);
         NimiqodeSpecification.HEXRING_ADDITIONAL_SLOT_DISTANCE =
             parseFloat(document.getElementById('input-slot-distance').value);
-        nimiqode = new Nimiqode(data);
+        const errorCorrectionFactor = parseFloat(document.getElementById('input-error-correction-factor').value);
+        nimiqode = new Nimiqode(data, errorCorrectionFactor);
 
         const rotation = parseFloat(document.getElementById('input-rotation').value) * Math.PI;
         const scaleFactor = parseFloat(document.getElementById('input-scale').value);
 
         canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-        nimiqode.render(canvas, 'lightblue', new Point(canvas.width/2, canvas.height/2), scaleFactor, rotation);
+        NimiqodeRenderer.render(canvas, nimiqode, 'lightblue', new Point(canvas.width/2, canvas.height/2), scaleFactor,
+            rotation);
+
+        document.getElementById('info-data-length').textContent = `Data length: ${nimiqode._payload.length}
+            (${data.byteLength} byte), Error encoding length:
+            ${Math.ceil(nimiqode._payload.length * errorCorrectionFactor)} +
+            ${nimiqode._errorCorrectionData.length - Math.ceil(nimiqode._payload.length * errorCorrectionFactor)}
+            filling up free space`;
     }
 
     document.querySelectorAll('input').forEach(input => input.addEventListener('input', render));

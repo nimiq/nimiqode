@@ -8,7 +8,7 @@ class HexagonRingRenderer {
      * @param {number} scaleFactor
      * @param {number} rotation in radians
      */
-    static renderHexagonRing(canvas, hexagonRing, strokeColor, strokeWidth, center, scaleFactor=1, rotation=0) {
+    static render(canvas, hexagonRing, strokeColor, strokeWidth, center, scaleFactor=1, rotation=0) {
         if (!(canvas instanceof HTMLCanvasElement) || !(hexagonRing instanceof HexagonRing) ||
             typeof(strokeColor)!=='string' || typeof(strokeWidth)!=='number' || !(center instanceof Point) ||
             typeof(scaleFactor)!=='number' || typeof(rotation)!=='number') {

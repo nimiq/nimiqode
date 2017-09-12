@@ -7,7 +7,7 @@ class BitArray {
      *  Uint32Array|Float32Array|Float64Array} lengthOrBitArrayOrTypedArrayOrArrayBuffer
      * @param {number} [start] index of the first bit to take from the source (included)
      * @param {number} [end] index of the end of the bit sequence in the source (excluded)
-     * @param {boolean} [copy] whether to create a copy of the bits
+     * @param {boolean} [copy] whether to create a copy of the bits. Defaults to false.
      */
     constructor(lengthOrBitArrayOrTypedArrayOrArrayBuffer, start, end, copy) {
         if (typeof(lengthOrBitArrayOrTypedArrayOrArrayBuffer) === 'number') {
@@ -178,16 +178,55 @@ class BitArray {
     /**
      * Copies bits from another BitArray into this one.
      * @param {BitArray} bitArray
-     * @param {number} [index]
-     * @param {number} [readIndex]
+     * @param {number} [index] At which position in this BitArray the data should be written.
+     * @param {number} [readIndex] Which position in the source BitArray the data should be read from
      * @param {number} [count]
+     * @returns {number} write count
      */
-    write(bitArray, index=0, readIndex=0, count) {
-        if (typeof(count) === 'undefined') {
+    writeBitArray(bitArray, index=0, readIndex=0, count=null) {
+        if (count === null) {
             count = Math.min(this.length-index, bitArray.length-readIndex);
         }
         for (let i=0; i<count; ++i) {
             this.setValue(index+i, bitArray.getBit(readIndex + i));
+            // TODO performance improvement: copy whole bytes / words at once if possible
         }
+        return count;
+    }
+
+
+    /**
+     * Write an unsigned int to the BitArray into numBits bits.
+     * @param {number} value
+     * @param {number} numBits
+     * @param {number} index
+     */
+    writeUnsignedInteger(value, numBits=8, index=0) {
+        if (numBits < 1 || numBits > 32) {
+            // Note that although javascript stores numbers in 64 bits, bit wise operators operate only on 32 bits
+            throw Error('Unsupported number of bits');
+        }
+        if (!Number.isSafeInteger(value) || Number.isNaN(value) || !Number.isFinite(value)) {
+            throw Error('Not an integer.');
+        }
+        if (value >= Math.pow(2, numBits)) {
+            throw Error('Value doesn\'t fit the given bits.');
+        }
+        if (value < 0) {
+            throw Error('Negative numbers not supported.');
+        }
+        for (let bitIndex=numBits-1; bitIndex>=0; --bitIndex) {
+            const mask = 1 << bitIndex;
+            this.setValue(index++, value & mask);
+        }
+    }
+
+
+    toArray() {
+        let result = new Array(this._length);
+        for (let i=0; i<this._length; ++i) {
+            result[i] = this.getBit(i);
+        }
+        return result;
     }
 }

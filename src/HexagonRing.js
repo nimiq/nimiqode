@@ -13,7 +13,7 @@ class HexagonRing {
     constructor(innerRadius, borderRadius, startEndOffset, slotDistance, slotLength) {
         if (typeof(innerRadius)!=='number' || typeof(borderRadius)!=='number' || typeof(startEndOffset)!=='number' ||
             typeof(slotDistance)!=='number' || typeof(slotLength)!=='number' || startEndOffset<1 || borderRadius<1 ||
-            slotDistance < 1) {
+            slotLength < 1) {
             throw('Illegal arguments');
         }
         this._innerRadius = innerRadius;
