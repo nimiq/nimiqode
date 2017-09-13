@@ -66,6 +66,15 @@ class HexagonRing {
 
 
     /**
+     * The corners of the hexagon if it wouldn't be rounded.
+     * @returns {Array.<Point>}
+     */
+    get virtualCorners() {
+        return this._virtualCorners;
+    }
+
+
+    /**
      * Set the data associated with this HexagonRing. Its length must exactly match the number of slots of this ring.
      * @param {BitArray} data
      */
@@ -89,7 +98,7 @@ class HexagonRing {
     _calculateSegments() {
         const origin = new Point(0, 0);
         // corners of the hexagon if it wouldn't be rounded and wouldn't have an offset
-        const virtualCorners = [
+        this._virtualCorners = [
             new Point(this._fullSideLength/2, this._innerRadius), // right bottom
             new Point(this._outerRadius, 0), // right center
             new Point(this._fullSideLength/2, -this._innerRadius), // right top
@@ -113,24 +122,24 @@ class HexagonRing {
 
         // calculate the hexagon sides (we traverse the hexagon counter clockwise)
         this._hexagonSides = [
-            new Line(virtualCorners[0], virtualCorners[1]).subLine(this._startEndOffset, sideOffset),
-            new Line(virtualCorners[1], virtualCorners[2]).subLine(sideOffset, sideOffset),
-            new Line(virtualCorners[2], virtualCorners[3]).subLine(sideOffset, sideOffset),
-            new Line(virtualCorners[3], virtualCorners[4]).subLine(sideOffset, sideOffset),
-            new Line(virtualCorners[4], virtualCorners[5]).subLine(sideOffset, sideOffset),
-            new Line(virtualCorners[5], virtualCorners[0]).subLine(sideOffset, this._startEndOffset)
+            new Line(this._virtualCorners[0], this._virtualCorners[1]).subLine(this._startEndOffset, sideOffset),
+            new Line(this._virtualCorners[1], this._virtualCorners[2]).subLine(sideOffset, sideOffset),
+            new Line(this._virtualCorners[2], this._virtualCorners[3]).subLine(sideOffset, sideOffset),
+            new Line(this._virtualCorners[3], this._virtualCorners[4]).subLine(sideOffset, sideOffset),
+            new Line(this._virtualCorners[4], this._virtualCorners[5]).subLine(sideOffset, sideOffset),
+            new Line(this._virtualCorners[5], this._virtualCorners[0]).subLine(sideOffset, this._startEndOffset)
         ];
         // calculate the arcs in the corners
         this._hexagonCornerArcs = [
-            new Arc(new Line(origin, virtualCorners[1]).positionToPoint(-cornerArcOffset),
+            new Arc(new Line(origin, this._virtualCorners[1]).positionToPoint(-cornerArcOffset),
                 this._borderRadius, this._hexagonSides[0].end, this._hexagonSides[1].start),
-            new Arc(new Line(origin, virtualCorners[2]).positionToPoint(-cornerArcOffset),
+            new Arc(new Line(origin, this._virtualCorners[2]).positionToPoint(-cornerArcOffset),
                 this._borderRadius, this._hexagonSides[1].end, this._hexagonSides[2].start),
-            new Arc(new Line(origin, virtualCorners[3]).positionToPoint(-cornerArcOffset),
+            new Arc(new Line(origin, this._virtualCorners[3]).positionToPoint(-cornerArcOffset),
                 this._borderRadius, this._hexagonSides[2].end, this._hexagonSides[3].start),
-            new Arc(new Line(origin, virtualCorners[4]).positionToPoint(-cornerArcOffset),
+            new Arc(new Line(origin, this._virtualCorners[4]).positionToPoint(-cornerArcOffset),
                 this._borderRadius, this._hexagonSides[3].end, this._hexagonSides[4].start),
-            new Arc(new Line(origin, virtualCorners[5]).positionToPoint(-cornerArcOffset),
+            new Arc(new Line(origin, this._virtualCorners[5]).positionToPoint(-cornerArcOffset),
                 this._borderRadius, this._hexagonSides[4].end, this._hexagonSides[5].start)
         ];
         this._segments = [

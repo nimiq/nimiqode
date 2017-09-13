@@ -43,12 +43,16 @@ class Nimiqode {
         this._assignHexagonRingData();
     }
 
-    static get payload() {
+    get payload() {
         return this._payload;
     }
 
-    static get version() {
+    get version() {
         return this._version;
+    }
+
+    get hexagonRings() {
+        return this._hexagonRings;
     }
 
     static calculateLength(numHexRings, lengthPayload, lengthErrorCorrection) {

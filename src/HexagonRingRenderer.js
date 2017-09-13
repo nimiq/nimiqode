@@ -1,6 +1,6 @@
 class HexagonRingRenderer {
     /**
-     * @param {HTMLCanvasElement} canvas
+     * @param {CanvasRenderingContext2D} canvasContext
      * @param {HexagonRing} hexagonRing
      * @param {string} strokeColor
      * @param {number} strokeWidth
@@ -8,8 +8,8 @@ class HexagonRingRenderer {
      * @param {number} scaleFactor
      * @param {number} rotation in radians
      */
-    static render(canvas, hexagonRing, strokeColor, strokeWidth, center, scaleFactor=1, rotation=0) {
-        if (!(canvas instanceof HTMLCanvasElement) || !(hexagonRing instanceof HexagonRing) ||
+    static render(canvasContext, hexagonRing, strokeColor, strokeWidth, center, scaleFactor=1, rotation=0) {
+        if (!(canvasContext instanceof CanvasRenderingContext2D) || !(hexagonRing instanceof HexagonRing) ||
             typeof(strokeColor)!=='string' || typeof(strokeWidth)!=='number' || !(center instanceof Point) ||
             typeof(scaleFactor)!=='number' || typeof(rotation)!=='number') {
             throw Error('Illegal arguments.');
@@ -17,11 +17,10 @@ class HexagonRingRenderer {
         if (!hexagonRing.data) {
             throw Error('HexagonRing data not set.');
         }
-        const context = canvas.getContext('2d');
-        context.save();
-        context.strokeStyle = strokeColor;
-        context.lineCap = 'butt';
-        context.lineWidth = strokeWidth * scaleFactor;
+        canvasContext.save();
+        canvasContext.strokeStyle = strokeColor;
+        canvasContext.lineCap = 'butt';
+        canvasContext.lineWidth = strokeWidth * scaleFactor;
 
         let index = 0;
         while (index < hexagonRing.numSlots) {
@@ -31,14 +30,13 @@ class HexagonRingRenderer {
                 do {
                     index++;
                 } while(index < hexagonRing.numSlots && hexagonRing.data.getBit(index));
-                const sequenceEnd = index; // excluded
-                HexagonRingRenderer._renderBitSequence(context, hexagonRing, center, scaleFactor, rotation,
-                    sequenceStart, sequenceEnd);
+                HexagonRingRenderer._renderBitSequence(canvasContext, hexagonRing, center, scaleFactor, rotation,
+                    sequenceStart, index);
             }
             index++;
         }
 
-        context.restore();
+        canvasContext.restore();
     }
 
 
