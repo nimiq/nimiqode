@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Nimiqode Scanner Demo</title>
+    <script src="../src/Camera.js"></script>
+    <script src="../src/GrayscaleImage.js"></script>
+    <script src="../src/ImagePrepocessor.js"></script>
+</head>
+<body>
+<style>
+    @media (min-width: 1200px) {
+        #container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+    }
+</style>
+<div id="container">
+    <video id="video"></video><br>
+    <div>
+        <canvas id="grayscale"></canvas>
+        <canvas id="binary"></canvas>
+    </div>
+</div>
+<script>
+    const grayscaleCanvas = document.getElementById('grayscale');
+    const grayscaleContext = grayscaleCanvas.getContext('2d');
+    const binaryCanvas = document.getElementById('binary');
+    const binaryContext = binaryCanvas.getContext('2d');
+    const camera = new Camera(document.getElementById('video'));
+    let imageBuffer;
+
+    function renderDebugImages() {
+        if (camera.isFilming) {
+            const snapshot = camera.takeSnapshot();
+            const [grayscale, binary] = ImagePreprocessor.preprocess(snapshot);
+            grayscaleContext.putImageData(grayscale.exportToRgba(imageBuffer), 0, 0);
+            binaryContext.putImageData(binary.exportToRgba(imageBuffer), 0, 0);
+        }
+        requestAnimationFrame(renderDebugImages);
+    }
+
+    camera.start().then(() => {
+        const width = camera.dimensions.width, height = camera.dimensions.height;
+        grayscaleCanvas.width = width;
+        grayscaleCanvas.height = height;
+        binaryCanvas.width = width;
+        binaryCanvas.height = height;
+        imageBuffer = new Uint8ClampedArray(width * height * 4); // 4 byte per pixel
+        renderDebugImages();
+    });
+</script>
+</body>
+</html>
