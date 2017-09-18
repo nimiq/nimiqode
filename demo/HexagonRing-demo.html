@@ -74,7 +74,7 @@
         function renderhexagonRing() {
             const context = canvas.getContext('2d');
             context.clearRect(0, 0, canvas.width, canvas.height);
-            HexagonRingRenderer.render(context, hexRing, 'lightblue',
+            HexagonRingRenderer.render(context, hexRing, 'black',
                 parseFloat(document.getElementById('input-line-width').value),
                 new Point(canvas.width/2, canvas.height/2), scaleFactor, rotation);
 

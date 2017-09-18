@@ -79,7 +79,7 @@
 
         const context = canvas.getContext('2d');
         context.clearRect(0, 0, canvas.width, canvas.height);
-        NimiqodeRenderer.render(context, nimiqode, 'lightblue', new Point(canvas.width/2, canvas.height/2), scaleFactor,
+        NimiqodeRenderer.render(context, nimiqode, 'black', new Point(canvas.width/2, canvas.height/2), scaleFactor,
             rotation);
 
         const preliminaryErrorCorrectionLength = Math.ceil(nimiqode._payload.length / 8 * errorCorrectionFactor) * 8;
