@@ -2,16 +2,26 @@ class Binarizer {
     // This implementation follows the idea of
     // https://github.com/zxing/zxing/blob/master/core/src/main/java/com/google/zxing/common/HybridBinarizer.java
 
-    static calculateRequiredBufferSize(width, height) {
+    static calculateRequiredBufferSize(imageWidth, imageHeight) {
         // memory for threshold for every block
-        const blockCountX = Math.ceil(width / Binarizer.BLOCK_SIZE);
-        const blockCountY = Math.ceil(height / Binarizer.BLOCK_SIZE);
+        const [, blockCountX, blockCountY] = Binarizer._calculateBlockSize(imageWidth, imageHeight);
         return blockCountX * blockCountY;
     }
 
+    static _calculateBlockSize(imageWidth, imageHeight) {
+        const blockSize = Math.max(
+            Math.floor(Math.min(imageWidth, imageHeight) / Binarizer.TARGET_BLOCK_COUNT_ALONG_SHORTER_SIDE),
+            Binarizer.MIN_BLOCK_SIZE
+        );
+
+        const blockCountX = Math.ceil(imageWidth / blockSize);
+        const blockCountY = Math.ceil(imageHeight / blockSize);
+        return [blockSize, blockCountX, blockCountY];
+    }
+
     static binarize(inputGrayscaleImage, outputBinaryImage = inputGrayscaleImage, buffer = null) {
-        const blockCountX = Math.ceil(inputGrayscaleImage.width / Binarizer.BLOCK_SIZE);
-        const blockCountY = Math.ceil(inputGrayscaleImage.height / Binarizer.BLOCK_SIZE);
+        const [blockSize, blockCountX, blockCountY] =
+            Binarizer._calculateBlockSize(inputGrayscaleImage.width, inputGrayscaleImage.height);
         let blockThresholds;
         if (buffer) {
             if (!(buffer instanceof Uint8ClampedArray) || buffer.byteLength !== blockCountX * blockCountY) {
@@ -25,7 +35,7 @@ class Binarizer {
         for (let blockIndexY=0; blockIndexY < blockCountY; ++blockIndexY) {
             for (let blockIndexX=0; blockIndexX < blockCountX; ++blockIndexX) {
                 const threshold = Binarizer._calculateBlockThreshold(inputGrayscaleImage, blockIndexX, blockIndexY,
-                    blockThresholds, blockCountX);
+                    blockCountX, blockSize, blockThresholds);
                 blockThresholds[blockIndexY * blockCountX + blockIndexX] = threshold;
             }
         }
@@ -37,21 +47,22 @@ class Binarizer {
                         sum += blockThresholds[(blockIndexY + i) * blockCountX + (blockIndexX + j)];
                     }
                 }
-                Binarizer._applyThresholdToBlock(inputGrayscaleImage, blockIndexX, blockIndexY, sum / 25,
+                Binarizer._applyThresholdToBlock(inputGrayscaleImage, blockIndexX, blockIndexY, blockSize, sum / 25,
                     outputBinaryImage);
             }
         }
     }
 
-    static _calculateBlockThreshold(inputGrayscaleImage, blockIndexX, blockIndexY, blockThresholds, blockCountX) {
+    static _calculateBlockThreshold(inputGrayscaleImage, blockIndexX, blockIndexY, blockCountX, blockSize,
+                                    blockThresholds) {
         const imageWidth = inputGrayscaleImage.width;
         const pixels = inputGrayscaleImage.pixels;
         let min = 0xFF, max = 0;
-        const left = Math.min(blockIndexX * Binarizer.BLOCK_SIZE, imageWidth - Binarizer.BLOCK_SIZE);
-        const top = Math.min(blockIndexY * Binarizer.BLOCK_SIZE, inputGrayscaleImage.height - Binarizer.BLOCK_SIZE);
+        const left = Math.min(blockIndexX * blockSize, imageWidth - blockSize);
+        const top = Math.min(blockIndexY * blockSize, inputGrayscaleImage.height - blockSize);
         let rowStart = top * imageWidth + left;
-        for (let y=0; y<Binarizer.BLOCK_SIZE; ++y) {
-            for (let x=0; x<Binarizer.BLOCK_SIZE; ++x) {
+        for (let y=0; y<blockSize; ++y) {
+            for (let x=0; x<blockSize; ++x) {
                 const pixel = pixels[rowStart + x];
                 if (pixel < min) {
                     min = pixel;
@@ -72,6 +83,7 @@ class Binarizer {
             return (min + max) / 2;
         } else {
             // We have a low dynamic range and assume the block is of solid bright or dark color.
+            // TODO this zxing implementation is somewhat weird. Think of a better threshold propagation strategy.
             if (blockIndexX === 0 || blockIndexY === 0) {
                 // cant compare to the neighbours. Assume it's a light background
                 return min / 2;
@@ -91,16 +103,16 @@ class Binarizer {
     }
 
 
-    static _applyThresholdToBlock(inputGrayscaleImage, blockIndexX, blockIndexY, threshold,
+    static _applyThresholdToBlock(inputGrayscaleImage, blockIndexX, blockIndexY, blockSize, threshold,
                                  outputBinaryImage = inputGrayscaleImage) {
         const imageWidth = inputGrayscaleImage.width;
         const inputPixels = inputGrayscaleImage.pixels;
         const outputPixels = outputBinaryImage.pixels;
-        const left = Math.min(blockIndexX * Binarizer.BLOCK_SIZE, imageWidth - Binarizer.BLOCK_SIZE);
-        const top = Math.min(blockIndexY * Binarizer.BLOCK_SIZE, inputGrayscaleImage.height - Binarizer.BLOCK_SIZE);
+        const left = Math.min(blockIndexX * blockSize, imageWidth - blockSize);
+        const top = Math.min(blockIndexY * blockSize, inputGrayscaleImage.height - blockSize);
         let rowStart = top * imageWidth + left;
-        for (let y=0; y<Binarizer.BLOCK_SIZE; ++y) {
-            for (let x=0; x<Binarizer.BLOCK_SIZE; ++x) {
+        for (let y=0; y<blockSize; ++y) {
+            for (let x=0; x<blockSize; ++x) {
                 const index = rowStart + x;
                 outputPixels[index] = inputPixels[index] <= threshold? 0 : 255;
             }
@@ -108,6 +120,7 @@ class Binarizer {
         }
     }
 }
-Binarizer.BLOCK_SIZE = 8; // compute threshold for every 8x8 block
+Binarizer.TARGET_BLOCK_COUNT_ALONG_SHORTER_SIDE = 40;
+Binarizer.MIN_BLOCK_SIZE = 8;
 Binarizer.AVERAGING_GRID_SIZE = 5; // determine final threshold for a block by averaging over 5x5 neighboring blocks
-Binarizer.MIN_DYNAMIC_RANGE = 6; // if the dynamic range in a block is below this value it's assumed to be single color
+Binarizer.MIN_DYNAMIC_RANGE = 24; // if the dynamic range in a block is below this value it's assumed to be single color
