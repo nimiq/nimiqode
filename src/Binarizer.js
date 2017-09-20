@@ -41,6 +41,14 @@ class Binarizer {
         }
         for (let blockIndexY=2; blockIndexY < blockCountY-2; ++blockIndexY) {
             for (let blockIndexX=2; blockIndexX < blockCountX-2; ++blockIndexX) {
+                // calculate the average threshold over a 5x5 grid to essentially make the area bigger and increase
+                // the chance that we have a bright and dark pixel in the area for good threshold computation. By
+                // keeping the real block size small we ensure a good local threshold estimate (the step size in x and
+                // y direction is essentially smaller).
+                // Instead of (min+max)/2 like in _calculateBlockThreshold, here we use a real average to be more prune
+                // against outliers. E.g. imagine whats behind the scanned screen is really dark, the screen (including
+                // dark pixels on the screen) rather bright. In this case, we want the threshold on the screen to be
+                // rather bright and therefore not to factor in the background too much.
                 let sum = 0;
                 for (let i = -2; i<=2; ++i) {
                     for (let j = -2; j<=2; ++j) {
@@ -84,6 +92,13 @@ class Binarizer {
         } else {
             // We have a low dynamic range and assume the block is of solid bright or dark color.
             // TODO this zxing implementation is somewhat weird. Think of a better threshold propagation strategy.
+            // Ideas:
+            // - start the propagation in the middle of the screen following the assumption that the nimiqode / screen
+            //   is centered in the image. By this, we avoid propagation of thresholds from the surrounding to the
+            //   screen which hold the only interesting information to us.
+            // - Combine the threshold propagation with edge detection
+            // - When propagating a threshold adapt it by comparing the average brightness in my block to the average
+            //   brightness in block we are propagating from
             if (blockIndexX === 0 || blockIndexY === 0) {
                 // cant compare to the neighbours. Assume it's a light background
                 return min / 2;

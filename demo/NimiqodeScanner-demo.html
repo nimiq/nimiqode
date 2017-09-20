@@ -7,6 +7,7 @@
     <script src="../src/GrayscaleImage.js"></script>
     <script src="../src/Binarizer.js"></script>
     <script src="../src/ImagePrepocessor.js"></script>
+    <script src="../src/BorderDetector.js"></script>
 </head>
 <body>
 <style>
@@ -39,6 +40,19 @@
             const [grayscale, binary] = ImagePreprocessor.preprocess(snapshot);
             grayscaleContext.putImageData(grayscale.exportToRgba(imageBuffer), 0, 0);
             binaryContext.putImageData(binary.exportToRgba(imageBuffer), 0, 0);
+            try {
+                const boundingRect = BorderDetector.detectBoundingRect(binary);
+                console.log('found bounding rect', boundingRect);
+                binaryContext.beginPath();
+                binaryContext.moveTo(boundingRect.left, boundingRect.top);
+                binaryContext.lineTo(boundingRect.right, boundingRect.top);
+                binaryContext.lineTo(boundingRect.right, boundingRect.bottom);
+                binaryContext.lineTo(boundingRect.left, boundingRect.bottom);
+                binaryContext.closePath();
+                binaryContext.stroke();
+            } catch(e) {
+                console.log(e.message);
+            }
         }
         requestAnimationFrame(renderDebugImages);
     }
