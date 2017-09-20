@@ -1,11 +1,16 @@
 class BorderDetector {
 
+    /**
+     * Compute a bounding rect around the center.
+     * The returned positions of the bounding rect are the positions of the utmost outline where each side touches a
+     * black pixel.
+     * @param {GrayscaleImage} binaryImage
+     * @returns {{left: number, top: number, right: number, bottom: number, width: number, height: number}}
+     */
     static detectBoundingRect(binaryImage) {
         // TODO we could also compute the bounding rect on the blocks from the binarizer which would be quite a speed up
 
-        // We define the bounding rect as a completely white border around the nimiqode. We can also require a specific
-        // width for the white border. We find the bounding rect by moving the sides towards the border until they
-        // fulfill the condition.
+        // We find the bounding rect by moving the sides towards the border until they fulfill the condition.
         // Start in the center of the image with a rectangle 20% wide and high
         const boundingRect = {
             left: Math.floor(0.4 * binaryImage.width),
@@ -25,7 +30,18 @@ class BorderDetector {
         const borderSize = Math.round(Math.max(Math.min(binaryImage.width, binaryImage.height) * 0.4 / 2 / 7,
             BorderDetector.BOUNDING_RECT_MIN_BORDER_WIDTH));
         BorderDetector._extendBoundingRect(boundingRect, borderSize, false, binaryImage);
-        return boundingRect;
+
+        // the bounding rect position we got are the position of the first white lines of the white border. However, we
+        // want the utmost outline where each side touches a black pixel, so we have to add / subtract 1
+        return {
+            left: boundingRect.left + 1,
+            top: boundingRect.top + 1,
+            right: boundingRect.right - 1,
+            bottom: boundingRect.bottom - 1,
+            // calculate width and height. Add 1 because right / bottom are inclusive boundaries
+            width: boundingRect.right - boundingRect.left + 1,
+            height: boundingRect.bottom - boundingRect.top + 1
+        };
     }
 
 
@@ -124,6 +140,18 @@ class BorderDetector {
             }
         }
         return true;
+    }
+
+
+    static calculateRequiredBufferSize(borderRect) {
+        // we have the upper side and lower side of the convex hull, at most borderRect.width points per side
+        const candidateCount = 2 * borderRect.width;
+        // The current convex hull candidate point search positions, one int16 (2 byte) entry per candidate
+        const candidateSearchPositionsBufferLength = candidateCount * 2;
+        // The candidate points / after in-place convex hull detection the convex hull. x and y per candidate, each
+        // an uint16 (2 byte).
+        const hullBufferLength = candidateCount * 2 * 2;
+        return candidateSearchPositionsBufferLength + hullBufferLength;
     }
 }
 BorderDetector.BOUNDING_RECT_MIN_BORDER_WIDTH = 5;

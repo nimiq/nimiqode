@@ -6,8 +6,8 @@
     <script src="../src/Camera.js"></script>
     <script src="../src/GrayscaleImage.js"></script>
     <script src="../src/Binarizer.js"></script>
-    <script src="../src/ImagePrepocessor.js"></script>
-    <script src="../src/BorderDetector.js"></script>
+    <script src="../src/NimiqodeDetector.js"></script>
+    <script src="../src/BoundingRectDetector.js"></script>
 </head>
 <body>
 <style>
@@ -34,27 +34,27 @@
     const camera = new Camera(document.getElementById('video'));
     let imageBuffer;
 
-    function renderDebugImages() {
+    function debugCallback(eventType, data) {
+        if (eventType === 'grayscale-image') {
+            grayscaleContext.putImageData(data.exportToRgba(imageBuffer), 0, 0);
+        } else if (eventType === 'binary-image') {
+            binaryContext.putImageData(data.exportToRgba(imageBuffer), 0, 0);
+        } else if (eventType === 'bounding-rect') {
+            binaryContext.strokeStyle = 'blue';
+            BoundingRectDetector.renderBoundingRect(data, binaryContext);
+        }
+    }
+
+    function process() {
         if (camera.isFilming) {
             const snapshot = camera.takeSnapshot();
-            const [grayscale, binary] = ImagePreprocessor.preprocess(snapshot);
-            grayscaleContext.putImageData(grayscale.exportToRgba(imageBuffer), 0, 0);
-            binaryContext.putImageData(binary.exportToRgba(imageBuffer), 0, 0);
             try {
-                const boundingRect = BorderDetector.detectBoundingRect(binary);
-                console.log('found bounding rect', boundingRect);
-                binaryContext.beginPath();
-                binaryContext.moveTo(boundingRect.left, boundingRect.top);
-                binaryContext.lineTo(boundingRect.right, boundingRect.top);
-                binaryContext.lineTo(boundingRect.right, boundingRect.bottom);
-                binaryContext.lineTo(boundingRect.left, boundingRect.bottom);
-                binaryContext.closePath();
-                binaryContext.stroke();
+                NimiqodeDetector.detect(snapshot, debugCallback);
             } catch(e) {
                 console.log(e.message);
             }
         }
-        requestAnimationFrame(renderDebugImages);
+        requestAnimationFrame(process);
     }
 
     camera.start().then(() => {
@@ -64,7 +64,7 @@
         binaryCanvas.width = width;
         binaryCanvas.height = height;
         imageBuffer = new Uint8ClampedArray(width * height * 4); // 4 byte per pixel
-        renderDebugImages();
+        process();
     });
 </script>
 </body>
