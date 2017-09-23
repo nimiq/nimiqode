@@ -8,6 +8,7 @@
     <script src="../src/Binarizer.js"></script>
     <script src="../src/NimiqodeDetector.js"></script>
     <script src="../src/BoundingRectDetector.js"></script>
+    <script src="../src/BoundingHexagonDetector.js"></script>
 </head>
 <body>
 <style>
@@ -23,14 +24,17 @@
     <video id="video"></video><br>
     <div>
         <canvas id="grayscale"></canvas>
-        <canvas id="binary"></canvas>
+        <canvas id="convex-hull"></canvas>
+        <canvas id="hexagon"></canvas>
     </div>
 </div>
 <script>
     const grayscaleCanvas = document.getElementById('grayscale');
     const grayscaleContext = grayscaleCanvas.getContext('2d');
-    const binaryCanvas = document.getElementById('binary');
-    const binaryContext = binaryCanvas.getContext('2d');
+    const convexHullCanvas = document.getElementById('convex-hull');
+    const convexHullContext = convexHullCanvas.getContext('2d');
+    const hexagonCanvas = document.getElementById('hexagon');
+    const hexagonContext = hexagonCanvas.getContext('2d');
     const camera = new Camera(document.getElementById('video'));
     let imageBuffer;
 
@@ -38,10 +42,23 @@
         if (eventType === 'grayscale-image') {
             grayscaleContext.putImageData(data.exportToRgba(imageBuffer), 0, 0);
         } else if (eventType === 'binary-image') {
-            binaryContext.putImageData(data.exportToRgba(imageBuffer), 0, 0);
+            const imageData = data.exportToRgba(imageBuffer);
+            convexHullContext.putImageData(imageData, 0, 0);
+            hexagonContext.putImageData(imageData, 0, 0);
         } else if (eventType === 'bounding-rect') {
-            binaryContext.strokeStyle = 'blue';
-            BoundingRectDetector.renderBoundingRect(data, binaryContext);
+            convexHullContext.strokeStyle = 'blue';
+            BoundingRectDetector.renderBoundingRect(data, convexHullContext);
+        } else if (eventType === 'convex-hull-candidates') {
+            convexHullContext.fillStyle = 'red';
+            BoundingHexagonDetector.renderConvexHullCandidates(data, convexHullContext);
+        } else if (eventType === 'convex-hull') {
+            convexHullContext.strokeStyle = 'purple';
+            convexHullContext.fillStyle = 'green';
+            BoundingHexagonDetector.renderConvexHull(data, convexHullContext);
+        } else if (eventType === 'hexagon-sides') {
+            hexagonContext.strokeStyle = 'purple';
+            hexagonContext.fillStyle = 'green';
+            BoundingHexagonDetector.renderLines(data, hexagonContext);
         }
     }
 
@@ -51,7 +68,11 @@
             try {
                 NimiqodeDetector.detect(snapshot, debugCallback);
             } catch(e) {
-                console.log(e.message);
+                if (e.message.startsWith('Not found.')) {
+                    console.log(e.message);
+                } else {
+                    throw e;
+                }
             }
         }
         requestAnimationFrame(process);
@@ -61,8 +82,10 @@
         const width = camera.dimensions.width, height = camera.dimensions.height;
         grayscaleCanvas.width = width;
         grayscaleCanvas.height = height;
-        binaryCanvas.width = width;
-        binaryCanvas.height = height;
+        convexHullCanvas.width = width;
+        convexHullCanvas.height = height;
+        hexagonCanvas.width = width;
+        hexagonCanvas.height = height;
         imageBuffer = new Uint8ClampedArray(width * height * 4); // 4 byte per pixel
         process();
     });

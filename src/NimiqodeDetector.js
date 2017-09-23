@@ -36,6 +36,11 @@ class NimiqodeDetector {
         if (debugCallback) {
             debugCallback('bounding-rect', boundingRect);
         }
+        // detect hexagon ring
+        const hexRingDetectorBufferSize = BoundingHexagonDetector.calculateRequiredBufferSize(boundingRect);
+        const hexRingDetectorBuffer = new Uint8ClampedArray(rgbaImage.data.buffer,
+            imageBufferSize + binarizerBufferSize, hexRingDetectorBufferSize);
+        BoundingHexagonDetector.detectBoundingHexagon(boundingRect, image, hexRingDetectorBuffer, debugCallback);
     }
 
 
