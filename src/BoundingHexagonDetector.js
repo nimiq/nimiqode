@@ -12,39 +12,53 @@ class BoundingHexagonDetector {
         // Point buffer for the candidate points / after in-place convex hull detection the convex hull.
         // Top and bottom candidates, x and y per point, each an uint16 (2 byte).
         const pointBufferByteLength = boundingRect.width * 2 * 2 * 2;
-        // Buffer for the 6 sides of the hexagon, for each the length, start and end point, for each point x and y,
-        // all numbers Uint16
-        const hexagonSidesBufferByteLength = 6 * (1 + 2 * 2) * 2;
-        return candidateSearchInitializationBufferByteLength + pointBufferByteLength + hexagonSidesBufferByteLength;
+        // Buffer for lengths of 6 sides, each an uint16
+        const sideLengthsBufferByteLength = 6 * 2;
+        // Buffer for the 6 longest sides of the convex hull, for each start and end point, for each x and y, all
+        // numbers Uint16
+        const longestSidesBufferByteLength = 6 * 2 * 2 * 2;
+        // Buffer for 6 corner points, for each x and y, each a float32
+        const boundingHexagonBufferByteLength = 6 * 2 * 4;
+        return candidateSearchInitializationBufferByteLength + pointBufferByteLength + sideLengthsBufferByteLength
+            + longestSidesBufferByteLength + boundingHexagonBufferByteLength;
     }
 
 
-    static detectBoundingHexagon(boundingRect, image, buffer = null, debugCallback) {
+    static detectBoundingHexagon(boundingRect, image, buffer = null, debugCallback = null) {
         // reasoning for the calculations see calculateRequiredBufferSize
         const candidateSearchInitBufferByteLength = boundingRect.width * 2 * 2;
         const pointBufferByteLength = boundingRect.width * 2 * 2 * 2;
-        const hexagonSidesBufferByteLength = 6 * (1 + 2 * 2) * 2;
-        let candidateSearchInitialization, pointBuffer, hexagonSidesBuffer;
+        const sideLengthsBufferByteLength = 6 * 2;
+        const longestSidesBufferByteLength = 6 * 2 * 2 * 2;
+        const boundingHexagonBufferByteLength = 6 * 2 * 4;
+        let candidateSearchInitialization, pointBuffer, sideLengthsBuffer, longestSidesBuffer, boundingHexagonBuffer;
         if (buffer) {
             if (buffer.byteLength !== candidateSearchInitBufferByteLength + pointBufferByteLength
-                + hexagonSidesBufferByteLength) {
+                + sideLengthsBufferByteLength + longestSidesBufferByteLength + boundingHexagonBufferByteLength) {
                 throw Error('Illegal Buffer.');
             }
             candidateSearchInitialization = new Uint16Array(buffer.buffer, buffer.byteOffset,
                 candidateSearchInitBufferByteLength / 2); // /2 because of Uint16
             pointBuffer = new Uint16Array(buffer.buffer, buffer.byteOffset + candidateSearchInitBufferByteLength,
                 pointBufferByteLength / 2);
-            hexagonSidesBuffer = new Uint16Array(buffer.buffer, pointBuffer.byteOffset + pointBufferByteLength,
-                hexagonSidesBufferByteLength / 2);
+            sideLengthsBuffer = new Uint16Array(buffer.buffer, pointBuffer.byteOffset + pointBufferByteLength,
+                sideLengthsBufferByteLength / 2);
+            longestSidesBuffer = new Uint16Array(buffer.buffer, sideLengthsBuffer.byteOffset +
+                sideLengthsBufferByteLength, longestSidesBufferByteLength / 2);
+            boundingHexagonBuffer = new Float32Array(buffer.buffer, longestSidesBuffer.byteOffset +
+                longestSidesBufferByteLength, longestSidesBufferByteLength / 4); // /4 because of Float32
         } else {
             candidateSearchInitialization = new Uint16Array(candidateSearchInitBufferByteLength / 2);
             pointBuffer = new Uint16Array(pointBufferByteLength / 2);
-            hexagonSidesBuffer = new Uint16Array(hexagonSidesBufferByteLength / 2);
+            sideLengthsBuffer = new Uint16Array(sideLengthsBufferByteLength / 2);
+            longestSidesBuffer = new Uint16Array(longestSidesBufferByteLength / 2);
+            boundingHexagonBuffer = new Float32Array(boundingHexagonBufferByteLength / 4);
         }
 
         // TODO if one would like to call this method again to find inner hexagons (after the outer one has been
         // removed), one could use the previous candidate points as initialization for the candidate search
-        const convexHullCandidates = BoundingHexagonDetector._findCandidatePoints(boundingRect, image, pointBuffer, null);
+        const convexHullCandidates = BoundingHexagonDetector._findConvexHullCandidatePoints(boundingRect, image,
+            pointBuffer, null);
         if (debugCallback) {
             debugCallback('convex-hull-candidates', convexHullCandidates);
         }
@@ -52,14 +66,18 @@ class BoundingHexagonDetector {
         if (debugCallback) {
             debugCallback('convex-hull', convexHull);
         }
-        const hexagonSides = BoundingHexagonDetector._extractHexagonSides(convexHull, hexagonSidesBuffer);
+        const longestConvexHullSides = BoundingHexagonDetector._findLongestSides(convexHull, 6, longestSidesBuffer,
+            sideLengthsBuffer);
         if (debugCallback) {
-            debugCallback('hexagon-sides', hexagonSides);
+            debugCallback('longest-convex-hull-sides', longestConvexHullSides);
         }
+
+        return BoundingHexagonDetector._boundingHexagonFromConvexHullSides(longestConvexHullSides,
+            boundingHexagonBuffer, sideLengthsBuffer);
     }
 
 
-    static _findCandidatePoints(boundingRect, image, pointBuffer, searchInitialization = null) {
+    static _findConvexHullCandidatePoints(boundingRect, image, pointBuffer, searchInitialization = null) {
         // Candidate points for the convex hull are the topmost and bottommost points in every column. The points that
         // are not the topmost or bottommost are by nature inside the convex hull. At the left and and right end a not
         // topmost or bottommost point can be exactly on the convex hull outline but can be skipped as that line is
@@ -211,16 +229,17 @@ class BoundingHexagonDetector {
     }
 
 
-    static _extractHexagonSides(convexHull, buffer) {
-        // Find the 6 longest straight lines in the convex hull.
+    static _findLongestSides(convexHull, count, sidesBuffer, lengthsBuffer) {
+        // Find the count longest straight lines in the convex hull.
         // Note that the line parts of the hexagon ring that should be completely straight (index.e. should be in the convex
         // hull a single line segment defined by start and end point) are in reality in the scanned image often times
         // combined of several minimally crooked line parts (because of discrete pixel positions, anti aliasing during
         // render, thresholding in the binarizer combined with out of focus/motion blur, ...). So we have to search for
         // line parts that differ only very little in angle and thus effectively form a straight line.
         const convexHullPointCount = convexHull.length / 2; // /2 because of x and y for every point
-        const lines = new Uint16Array(buffer.buffer, buffer.byteOffset, 6*2*2); // x, y for start, end of 6 lines
-        const lineLengths = new Uint16Array(buffer.buffer, buffer.byteOffset + lines.byteLength, 6);
+        const lines = new Uint16Array(sidesBuffer.buffer, sidesBuffer.byteOffset, count * 2); // index of start and end.
+        // Note that this buffer is allocated within sidesBuffer as the point indices get later translated into the
+        // coordinates and we don't need the indices anymore then.
         let lineCount = 0;
         // Start the search in a corner, to avoid that we start in the middle of a line (the latter can happen if the
         // straight lines are not perfectly straight but minimally crooked as already mentioned).
@@ -249,26 +268,28 @@ class BoundingHexagonDetector {
                 const lineLength = Math.sqrt((lineEndX - lineStartX) * (lineEndX - lineStartX) +
                     (lineEndY - lineStartY) * (lineEndY - lineStartY));
                 // insert the lines ordered by length with index 0 being the longest line
-                let lineIndex;
-                for (lineIndex = lineCount; lineIndex > 0; --lineIndex) {
-                    if (lineLength < lineLengths[lineIndex - 1]) {
+                let lineRank;
+                for (lineRank = lineCount; lineRank > 0; --lineRank) {
+                    if (lineLength < lengthsBuffer[lineRank - 1]) {
                         break;
                     }
                 }
-                if (lineIndex < 6) {
-                    // We wanna keep this line, it's longer then one of the 6 longest lines or we don't have 6 yet.
+                if (lineRank < count) {
+                    // We wanna keep this line, it's longer then one of the count longest lines or don't have count yet.
                     // Shift the shorter lines to the right to make space for the new line. Note that the
                     // copyWithin method handles the bounds silently, e.g. does nothing if the source or target
                     // index is out of bounds ignores or copies only till the end of the buffer if the source region
                     // is larger than the target region. So we don't have to check anything ourselves.
-                    lineLengths.copyWithin(lineIndex + 1, lineIndex);
-                    lines.copyWithin(4 * (lineIndex + 1), 4 * lineIndex); // * 4 because of x and y of start and end
-                    lineLengths[lineIndex] = lineLength;
-                    lines[4 * lineIndex] = lineStartX;
-                    lines[4 * lineIndex + 1] = lineStartY;
-                    lines[4 * lineIndex + 2] = lineEndX;
-                    lines[4 * lineIndex + 3] = lineEndY;
-                    if (lineCount < 6) {
+                    lengthsBuffer.copyWithin(lineRank + 1, lineRank);
+                    lines.copyWithin(2 * (lineRank + 1), 2 * lineRank); // * 2 because of index of start and end
+                    lengthsBuffer[lineRank] = lineLength; // gets rounded to int
+                    lines[2 * lineRank] = lineStartIndex;
+                    // When looping over index 0 the last line can have a smaller end index than start index due to the
+                    // modulo computation of indices. However, for later sorting, we want end indices to be always
+                    // larger than start indices.
+                    lines[2 * lineRank + 1] = lineEndIndex < lineStartIndex?
+                        lineEndIndex + convexHullPointCount : lineEndIndex;
+                    if (lineCount < count) {
                         lineCount++;
                     }
                 }
@@ -278,29 +299,91 @@ class BoundingHexagonDetector {
             prev = index;
             index = next;
         }
-        if (lineCount < 6) {
-            throw Error('Not found. Failed at: Hexagon side extraction.');
+        if (lineCount < count) {
+            throw Error('Not found. Failed at: Longest side extraction.');
         }
-        return lines;
+        // We now have the lines ordered by length. We wanna bring them back to counterclockwise order starting at the
+        // right, just like the points. Therefore we can simply sort the points by their start or end indices. Note that
+        // no two lines overlap, i.e. there is no line which has a start index within the start / end index range of
+        // another line and as we made sure that the end index is always larger than the start index, we can just sort
+        // the whole array.
+        lines.sort();
+        // translate the start / end point indices into coordinates
+        for (let i=count-1; i>=0; --i) { //loop from end to start to not overwrite entries in lines buffer we still need
+            const startIndex = lines[2 * i], endIndex = lines[2 * i + 1] % convexHullPointCount;
+            const startX = convexHull[2 * startIndex], startY = convexHull[2 * startIndex + 1],
+                endX = convexHull[2 * endIndex], endY = convexHull[2 * endIndex + 1];
+            sidesBuffer[i * 4] = startX;
+            sidesBuffer[i * 4 + 1] = startY;
+            sidesBuffer[i * 4 + 2] = endX;
+            sidesBuffer[i * 4 + 3] = endY;
+        }
+        return sidesBuffer;
     }
 
 
-    static renderConvexHull(convexHull, canvasContext) {
+    static _boundingHexagonFromConvexHullSides(sides, boundingHexagonBuffer, lengthsBuffer) {
+        // calculate the intersections of the sides
+        for (let i=0; i<6; ++i) {
+            // see https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line
+            const neighbour = (i + 1) % 6;
+            const line1StartX = sides[4 * i], line1StartY = sides[4 * i + 1],
+                line1EndX = sides[4 * i + 2], line1EndY = sides[4 * i + 3],
+                line2StartX = sides[4 * neighbour], line2StartY = sides[4 * neighbour + 1],
+                line2EndX = sides[4 * neighbour + 2], line2EndY = sides[4 * neighbour + 3];
+            const line1DeltaX = line1StartX - line1EndX, line1DeltaY = line1StartY - line1EndY,
+                line2DeltaX = line2StartX - line2EndX, line2DeltaY = line2StartY - line2EndY;
+            const denominator = line1DeltaX * line2DeltaY - line1DeltaY * line2DeltaX;
+            if (denominator === 0) {
+                // lines are parallel or collinear
+                throw Error('Not found. Convex hull is not a hexagon.');
+            }
+            const factor1 = line1StartX * line1EndY - line1StartY * line1EndX,
+                factor2 = line2StartX * line2EndY - line2StartY * line2EndX;
+            boundingHexagonBuffer[2 * i] = (factor1 * line2DeltaX - factor2 * line1DeltaX) / denominator;
+            boundingHexagonBuffer[2 * i + 1] = (factor1 * line2DeltaY - factor2 * line1DeltaY) / denominator;
+        }
+
+        // calculate the side lengths
+        let averageLength = 0;
+        for (let i=0; i<6; ++i) {
+            const neighbour = (i + 1) % 6;
+            const deltaX = boundingHexagonBuffer[2 * i] - boundingHexagonBuffer[neighbour * 2],
+                deltaY = boundingHexagonBuffer[2 * i + 1] - boundingHexagonBuffer[neighbour * 2 + 1];
+            const sideLength = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            averageLength += sideLength / 6;
+            lengthsBuffer[i] = sideLength; // gets rounded to int
+        }
+
+        // check whether sides are similarly long. Note that if the sides are similarly long, then the angles between
+        // them are also similar (not true in general, but in our case as we got the lines based on the convex hull)
+        const maxSideLengthDeviation = averageLength * BoundingHexagonDetector.MAX_SIDE_LENGTH_DEVIATION_PERCENT;
+        for (let i=0; i<6; ++i) {
+            if (Math.abs(lengthsBuffer[i] - averageLength) > maxSideLengthDeviation) {
+                throw Error('Not found. Convex hull is not a regular hexagon.');
+            }
+        }
+
+        return boundingHexagonBuffer;
+    }
+
+
+    static renderPolygon(points, canvasContext) {
         canvasContext.beginPath();
-        canvasContext.moveTo(convexHull[0], convexHull[1]);
-        canvasContext.fillRect(convexHull[0]-2, convexHull[1]-2, 4, 4);
-        for (let i=2; i<convexHull.length; i+=2) {
-            canvasContext.lineTo(convexHull[i], convexHull[i+1]);
-            canvasContext.fillRect(convexHull[i]-2, convexHull[i+1]-2, 4, 4);
+        canvasContext.moveTo(points[0], points[1]);
+        canvasContext.fillRect(points[0]-2, points[1]-2, 4, 4);
+        for (let i=2; i<points.length; i+=2) {
+            canvasContext.lineTo(points[i], points[i+1]);
+            canvasContext.fillRect(points[i]-2, points[i+1]-2, 4, 4);
         }
         canvasContext.closePath();
         canvasContext.stroke();
     }
 
 
-    static renderConvexHullCandidates(convexHullCandidates, canvasContext) {
-        for (let i=0; i<convexHullCandidates.length; i+=2) {
-            canvasContext.fillRect(convexHullCandidates[i]-1, convexHullCandidates[i+1]-1, 2, 2);
+    static renderPoints(points, canvasContext) {
+        for (let i=0; i<points.length; i+=2) {
+            canvasContext.fillRect(points[i]-1, points[i+1]-1, 2, 2);
         }
     }
 
@@ -326,3 +409,4 @@ class BoundingHexagonDetector {
 BoundingHexagonDetector.MAX_STRAIGHT_LINE_ANGLE_DEVIATION = 0.005;
 BoundingHexagonDetector.MAX_STRAIGHT_LINE_ANGLE_DEVIATION_SIN =
     Math.sin(BoundingHexagonDetector.MAX_STRAIGHT_LINE_ANGLE_DEVIATION * Math.PI);
+BoundingHexagonDetector.MAX_SIDE_LENGTH_DEVIATION_PERCENT = 0.25;

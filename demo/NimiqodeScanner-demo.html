@@ -50,15 +50,19 @@
             BoundingRectDetector.renderBoundingRect(data, convexHullContext);
         } else if (eventType === 'convex-hull-candidates') {
             convexHullContext.fillStyle = 'red';
-            BoundingHexagonDetector.renderConvexHullCandidates(data, convexHullContext);
+            BoundingHexagonDetector.renderPoints(data, convexHullContext);
         } else if (eventType === 'convex-hull') {
             convexHullContext.strokeStyle = 'purple';
             convexHullContext.fillStyle = 'green';
-            BoundingHexagonDetector.renderConvexHull(data, convexHullContext);
-        } else if (eventType === 'hexagon-sides') {
+            BoundingHexagonDetector.renderPolygon(data, convexHullContext);
+        } else if (eventType === 'longest-convex-hull-sides') {
             hexagonContext.strokeStyle = 'purple';
             hexagonContext.fillStyle = 'green';
             BoundingHexagonDetector.renderLines(data, hexagonContext);
+        } else if (eventType === 'bounding-hexagon') {
+            hexagonContext.strokeStyle = 'blue';
+            hexagonContext.fillStyle = 'red';
+            BoundingHexagonDetector.renderPolygon(data, hexagonContext);
         }
     }
 
