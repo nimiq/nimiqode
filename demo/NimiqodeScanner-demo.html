@@ -8,6 +8,7 @@
     <script src="../src/Binarizer.js"></script>
     <script src="../src/NimiqodeDetector.js"></script>
     <script src="../src/BoundingRectDetector.js"></script>
+    <script src="../src/Point.js"></script>
     <script src="../src/BoundingHexagonDetector.js"></script>
 </head>
 <body>
@@ -62,7 +63,7 @@
         } else if (eventType === 'bounding-hexagon') {
             hexagonContext.strokeStyle = 'blue';
             hexagonContext.fillStyle = 'red';
-            BoundingHexagonDetector.renderPolygon(data, hexagonContext);
+            BoundingHexagonDetector.renderBoundingHexagon(data, hexagonContext);
         }
     }
 

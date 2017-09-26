@@ -121,7 +121,7 @@ class BoundingRectDetector {
         const pixels = image.pixels;
         const lineEnd = y * image.width + right;
         for (let pos = y * image.width + left; pos <= lineEnd; ++pos) { // "<=" because right is included
-            if (!pixels[pos]) {
+            if (pixels[pos] !== 255) {
                 // it's a black pixel
                 return false;
             }
@@ -135,7 +135,7 @@ class BoundingRectDetector {
         const pixels = image.pixels;
         const lineEnd = bottom * imageWidth + x;
         for (let pos = top * imageWidth + x; pos <= lineEnd; pos += imageWidth) { // "<=" because bottom is included
-            if (!pixels[pos]) {
+            if (pixels[pos] !== 255) {
                 // it's a black pixel
                 return false;
             }

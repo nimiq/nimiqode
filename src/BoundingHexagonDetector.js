@@ -331,17 +331,10 @@ class BoundingHexagonDetector {
                 line1EndX = sides[4 * i + 2], line1EndY = sides[4 * i + 3],
                 line2StartX = sides[4 * neighbour], line2StartY = sides[4 * neighbour + 1],
                 line2EndX = sides[4 * neighbour + 2], line2EndY = sides[4 * neighbour + 3];
-            const line1DeltaX = line1StartX - line1EndX, line1DeltaY = line1StartY - line1EndY,
-                line2DeltaX = line2StartX - line2EndX, line2DeltaY = line2StartY - line2EndY;
-            const denominator = line1DeltaX * line2DeltaY - line1DeltaY * line2DeltaX;
-            if (denominator === 0) {
-                // lines are parallel or collinear
+            if (!BoundingHexagonDetector._calculateLineIntersection(line1StartX, line1StartY, line1EndX, line1EndY,
+                    line2StartX, line2StartY, line2EndX, line2EndY, boundingHexagonBuffer, i * 2)) {
                 throw Error('Not found. Convex hull is not a hexagon.');
             }
-            const factor1 = line1StartX * line1EndY - line1StartY * line1EndX,
-                factor2 = line2StartX * line2EndY - line2StartY * line2EndX;
-            boundingHexagonBuffer[2 * i] = (factor1 * line2DeltaX - factor2 * line1DeltaX) / denominator;
-            boundingHexagonBuffer[2 * i + 1] = (factor1 * line2DeltaY - factor2 * line1DeltaY) / denominator;
         }
 
         // calculate the side lengths
@@ -364,7 +357,46 @@ class BoundingHexagonDetector {
             }
         }
 
-        return boundingHexagonBuffer;
+        // find the center
+        // don't need the lengths anymore and reuse the buffer
+        let centerCoords = new Float32Array(lengthsBuffer.buffer, lengthsBuffer.byteOffset, 2);
+        let centerX = 0, centerY = 0;
+        for (let i=0; i<3; ++i) {
+            const oppositeCorner = (i + 3) % 6;
+            const neighbor = i + 1;
+            const neighborOppositeCorner = (neighbor + 3) % 6;
+            BoundingHexagonDetector._calculateLineIntersection(
+                boundingHexagonBuffer[i * 2], boundingHexagonBuffer[i * 2 + 1],
+                boundingHexagonBuffer[oppositeCorner * 2], boundingHexagonBuffer[oppositeCorner * 2 + 1],
+                boundingHexagonBuffer[neighbor * 2], boundingHexagonBuffer[neighbor * 2 + 1],
+                boundingHexagonBuffer[neighborOppositeCorner * 2], boundingHexagonBuffer[neighborOppositeCorner * 2 +1],
+                centerCoords, 0);
+            centerX += centerCoords[0] / 3;
+            centerY += centerCoords[1] / 3;
+        }
+
+        return {
+            corners: boundingHexagonBuffer,
+            center: new Point(centerX, centerY)
+        };
+    }
+
+
+    static _calculateLineIntersection(line1StartX, line1StartY, line1EndX, line1EndY,
+                                      line2StartX, line2StartY, line2EndX, line2EndY,
+                                      outputBuffer, outputWriteIndex) {
+        const line1DeltaX = line1StartX - line1EndX, line1DeltaY = line1StartY - line1EndY,
+            line2DeltaX = line2StartX - line2EndX, line2DeltaY = line2StartY - line2EndY;
+        const denominator = line1DeltaX * line2DeltaY - line1DeltaY * line2DeltaX;
+        if (denominator === 0) {
+            // lines are parallel or collinear
+            return false;
+        }
+        const factor1 = line1StartX * line1EndY - line1StartY * line1EndX,
+            factor2 = line2StartX * line2EndY - line2StartY * line2EndX;
+        outputBuffer[outputWriteIndex] = (factor1 * line2DeltaX - factor2 * line1DeltaX) / denominator;
+        outputBuffer[outputWriteIndex + 1] = (factor1 * line2DeltaY - factor2 * line1DeltaY) / denominator;
+        return true;
     }
 
 
@@ -399,6 +431,21 @@ class BoundingHexagonDetector {
             canvasContext.fillRect(endX-2, endY-2, 4, 4);
         }
         canvasContext.stroke();
+    }
+
+
+    static renderBoundingHexagon(boundingHexagon, canvasContext) {
+        // render diagonals
+        const corners = boundingHexagon.corners;
+        canvasContext.beginPath();
+        for (let i=0; i<3; ++i) {
+            const oppositeCorner = (i + 3) % 6;
+            canvasContext.moveTo(corners[2 * i], corners[2 * i + 1]);
+            canvasContext.lineTo(corners[2 * oppositeCorner], corners[2 * oppositeCorner + 1]);
+        }
+        canvasContext.stroke();
+        canvasContext.fillRect(boundingHexagon.center.x - 2, boundingHexagon.center.y - 2, 4, 4);
+        BoundingHexagonDetector.renderPolygon(corners, canvasContext);
     }
 }
 
