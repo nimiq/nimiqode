@@ -39,6 +39,7 @@ class Point {
         return new Point(this._x, this._y);
     }
 
+    // TODO refactor these transformations to use the transformation matrix ?
 
     /**
      * Rotate a point around the origin of the coordinate system. Changes the original point.
