@@ -375,8 +375,13 @@ class BoundingHexagonDetector {
             centerY += centerCoords[1] / 3;
         }
 
+        const corners = [];
+        for (let i=0; i<6; ++i) {
+            corners.push(new Point(boundingHexagonBuffer[i * 2], boundingHexagonBuffer[i * 2 + 1]));
+        }
+
         return {
-            corners: boundingHexagonBuffer,
+            corners: corners,
             center: new Point(centerX, centerY)
         };
     }
@@ -397,55 +402,6 @@ class BoundingHexagonDetector {
         outputBuffer[outputWriteIndex] = (factor1 * line2DeltaX - factor2 * line1DeltaX) / denominator;
         outputBuffer[outputWriteIndex + 1] = (factor1 * line2DeltaY - factor2 * line1DeltaY) / denominator;
         return true;
-    }
-
-
-    static renderPolygon(points, canvasContext) {
-        canvasContext.beginPath();
-        canvasContext.moveTo(points[0], points[1]);
-        canvasContext.fillRect(points[0]-2, points[1]-2, 4, 4);
-        for (let i=2; i<points.length; i+=2) {
-            canvasContext.lineTo(points[i], points[i+1]);
-            canvasContext.fillRect(points[i]-2, points[i+1]-2, 4, 4);
-        }
-        canvasContext.closePath();
-        canvasContext.stroke();
-    }
-
-
-    static renderPoints(points, canvasContext) {
-        for (let i=0; i<points.length; i+=2) {
-            canvasContext.fillRect(points[i]-1, points[i+1]-1, 2, 2);
-        }
-    }
-
-
-    static renderLines(lines, canvasContext) {
-        // lines defined by startX, startY, endX, endY
-        canvasContext.beginPath();
-        for (let i=0; i<lines.length; i += 4) {
-            const startX = lines[i], startY = lines[i+1], endX = lines[i+2], endY = lines[i+3];
-            canvasContext.moveTo(startX, startY);
-            canvasContext.lineTo(endX, endY);
-            canvasContext.fillRect(startX-2, startY-2, 4, 4);
-            canvasContext.fillRect(endX-2, endY-2, 4, 4);
-        }
-        canvasContext.stroke();
-    }
-
-
-    static renderBoundingHexagon(boundingHexagon, canvasContext) {
-        // render diagonals
-        const corners = boundingHexagon.corners;
-        canvasContext.beginPath();
-        for (let i=0; i<3; ++i) {
-            const oppositeCorner = (i + 3) % 6;
-            canvasContext.moveTo(corners[2 * i], corners[2 * i + 1]);
-            canvasContext.lineTo(corners[2 * oppositeCorner], corners[2 * oppositeCorner + 1]);
-        }
-        canvasContext.stroke();
-        canvasContext.fillRect(boundingHexagon.center.x - 2, boundingHexagon.center.y - 2, 4, 4);
-        BoundingHexagonDetector.renderPolygon(corners, canvasContext);
     }
 }
 

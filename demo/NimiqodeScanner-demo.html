@@ -8,8 +8,10 @@
     <script src="../src/Binarizer.js"></script>
     <script src="../src/NimiqodeDetector.js"></script>
     <script src="../src/BoundingRectDetector.js"></script>
-    <script src="../src/Point.js"></script>
     <script src="../src/BoundingHexagonDetector.js"></script>
+    <script src="../src/HexagonRingDetector.js"></script>
+    <script src="../src/Point.js"></script>
+    <script src="../src/DebugRenderUtils.js"></script>
 </head>
 <body>
 <style>
@@ -26,7 +28,8 @@
     <div>
         <canvas id="grayscale"></canvas>
         <canvas id="convex-hull"></canvas>
-        <canvas id="hexagon"></canvas>
+        <canvas id="bounding-hexagon"></canvas>
+        <canvas id="hexagon-rings"></canvas>
     </div>
 </div>
 <script>
@@ -34,8 +37,10 @@
     const grayscaleContext = grayscaleCanvas.getContext('2d');
     const convexHullCanvas = document.getElementById('convex-hull');
     const convexHullContext = convexHullCanvas.getContext('2d');
-    const hexagonCanvas = document.getElementById('hexagon');
-    const hexagonContext = hexagonCanvas.getContext('2d');
+    const boundingHexagonCanvas = document.getElementById('bounding-hexagon');
+    const boundingHexagonContext = boundingHexagonCanvas.getContext('2d');
+    const hexagonRingsCanvas = document.getElementById('hexagon-rings');
+    const hexagonRingsContext = hexagonRingsCanvas.getContext('2d');
     const camera = new Camera(document.getElementById('video'));
     let imageBuffer;
 
@@ -45,25 +50,31 @@
         } else if (eventType === 'binary-image') {
             const imageData = data.exportToRgba(imageBuffer);
             convexHullContext.putImageData(imageData, 0, 0);
-            hexagonContext.putImageData(imageData, 0, 0);
+            boundingHexagonContext.putImageData(imageData, 0, 0);
+            hexagonRingsContext.putImageData(imageData, 0, 0);
         } else if (eventType === 'bounding-rect') {
             convexHullContext.strokeStyle = 'blue';
-            BoundingRectDetector.renderBoundingRect(data, convexHullContext);
+            DebugRenderUtils.renderBoundingRect(data, convexHullContext);
         } else if (eventType === 'convex-hull-candidates') {
             convexHullContext.fillStyle = 'red';
-            BoundingHexagonDetector.renderPoints(data, convexHullContext);
+            DebugRenderUtils.renderPoints(data, convexHullContext);
         } else if (eventType === 'convex-hull') {
-            convexHullContext.strokeStyle = 'purple';
+            convexHullContext.strokeStyle = 'cyan';
             convexHullContext.fillStyle = 'green';
-            BoundingHexagonDetector.renderPolygon(data, convexHullContext);
+            DebugRenderUtils.renderPolygon(data, convexHullContext);
         } else if (eventType === 'longest-convex-hull-sides') {
-            hexagonContext.strokeStyle = 'purple';
-            hexagonContext.fillStyle = 'green';
-            BoundingHexagonDetector.renderLines(data, hexagonContext);
+            boundingHexagonContext.strokeStyle = 'cyan';
+            boundingHexagonContext.lineWidth = 3;
+            boundingHexagonContext.fillStyle = 'green';
+            DebugRenderUtils.renderLines(data, boundingHexagonContext);
         } else if (eventType === 'bounding-hexagon') {
-            hexagonContext.strokeStyle = 'blue';
-            hexagonContext.fillStyle = 'red';
-            BoundingHexagonDetector.renderBoundingHexagon(data, hexagonContext);
+            boundingHexagonContext.strokeStyle = 'blue';
+            boundingHexagonContext.lineWidth = 1;
+            boundingHexagonContext.fillStyle = 'red';
+            DebugRenderUtils.renderBoundingHexagon(data, boundingHexagonContext);
+        } else if (eventType === 'orientation-finder') {
+            hexagonRingsContext.strokeStyle = 'cyan';
+            DebugRenderUtils.renderLines(data, hexagonRingsContext);
         }
     }
 
@@ -89,8 +100,10 @@
         grayscaleCanvas.height = height;
         convexHullCanvas.width = width;
         convexHullCanvas.height = height;
-        hexagonCanvas.width = width;
-        hexagonCanvas.height = height;
+        boundingHexagonCanvas.width = width;
+        boundingHexagonCanvas.height = height;
+        hexagonRingsCanvas.width = width;
+        hexagonRingsCanvas.height = height;
         imageBuffer = new Uint8ClampedArray(width * height * 4); // 4 byte per pixel
         process();
     });

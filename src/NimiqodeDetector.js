@@ -45,6 +45,8 @@ class NimiqodeDetector {
         if (debugCallback) {
             debugCallback('bounding-hexagon', boundingHexagon);
         }
+        // detect hexagon rings
+        HexagonRingDetector.detectHexagonRings(boundingHexagon, image, debugCallback);
     }
 
 

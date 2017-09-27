@@ -142,17 +142,5 @@ class BoundingRectDetector {
         }
         return true;
     }
-
-
-    static renderBoundingRect(boundingRect, context) {
-        context.beginPath();
-        // add / subtract 1 to not draw over the interior of the bounding rect
-        context.moveTo(boundingRect.left - 1, boundingRect.top - 1);
-        context.lineTo(boundingRect.right + 1, boundingRect.top - 1);
-        context.lineTo(boundingRect.right + 1, boundingRect.bottom + 1);
-        context.lineTo(boundingRect.left - 1, boundingRect.bottom + 1);
-        context.closePath();
-        context.stroke();
-    }
 }
 BoundingRectDetector.BOUNDING_RECT_MIN_BORDER_WIDTH = 5;
