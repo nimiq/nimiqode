@@ -23,13 +23,13 @@ class HexagonRingRenderer {
         canvasContext.lineWidth = strokeWidth * scaleFactor;
 
         let index = 0;
-        while (index < hexagonRing.numSlots) {
+        while (index < hexagonRing.slotCount) {
             // search for sequences of consecutive set bits
-            if (hexagonRing.data.getBit(index)) {
+            if (hexagonRing.isSlotSet(index)) {
                 const sequenceStart = index;
                 do {
                     index++;
-                } while(index < hexagonRing.numSlots && hexagonRing.data.getBit(index));
+                } while(index < hexagonRing.slotCount && hexagonRing.isSlotSet(index));
                 HexagonRingRenderer._renderBitSequence(canvasContext, hexagonRing, center, scaleFactor, rotation,
                     sequenceStart, index);
             }

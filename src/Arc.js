@@ -115,9 +115,8 @@ class Arc {
         if (relative) {
             angle += this._startAngle;
         }
-        const point = new Point(this._center.x + this._radius * Math.cos(angle),
+        return new Point(this._center.x + this._radius * Math.cos(angle),
             this._center.y - this._radius * Math.sin(angle)); // we do minus here as our y axis grows from top to bottom
-        return point;
     }
 
 

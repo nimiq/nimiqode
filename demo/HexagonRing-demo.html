@@ -31,6 +31,8 @@
             Additional slot distance: <input id="input-slot-distance" value="0" type="number"><br>
             Rotation: <input id="input-rotation" type="range" min="0" max="2" step="any" value="0"><br>
             Scale: <input id="input-scale" type="range" min="0.5" max="1.5" step="any" value="1"><br>
+            Counterclockwise finder pattern set: <input id="input-counterclockwise-finder-pattern" type="checkbox"><br>
+            Clockwise finder pattern set: <input id="input-clockwise-finder-pattern" type="checkbox"><br>
             Show rounded corner center points: <input id="input-show-arc-centers" type="checkbox" checked><br>
             <div id="infoBitCount"></div>
             <button id="cycleAllSlotsBtn">Cycle trough all positions</button>
@@ -50,14 +52,17 @@
                 parseFloat(document.getElementById('input-slot-distance').value),
                 parseFloat(document.getElementById('input-slot-length').value)
             );
-            data = new BitArray(hexRing.numSlots);
+            data = new BitArray(hexRing.bitCount);
             hexRing.data = data;
 
             rotation = parseFloat(document.getElementById('input-rotation').value) * Math.PI;
             scaleFactor = parseFloat(document.getElementById('input-scale').value);
             showCornerCenters = document.getElementById('input-show-arc-centers').checked;
 
-            document.getElementById('infoBitCount').textContent = hexRing.numSlots + ' bits in hexagon ring.';
+            hexRing.setFinderPattern(document.getElementById('input-counterclockwise-finder-pattern').checked,
+                document.getElementById('input-clockwise-finder-pattern').checked)
+
+            document.getElementById('infoBitCount').textContent = hexRing.bitCount + ' bits in hexagon ring.';
 
             showAlternatingPattern();
         }
@@ -86,12 +91,12 @@
         let animationStep=0;
         let animationTimer = null;
         function doAnimationStep() {
-            if (animationStep < hexRing.numSlots) {
+            if (animationStep < hexRing.bitCount) {
                 data.setBit(animationStep);
             } else {
-                data.unsetBit(animationStep - hexRing.numSlots);
+                data.unsetBit(animationStep - hexRing.bitCount);
             }
-            if (animationStep === 2 * hexRing.numSlots-1) {
+            if (animationStep === 2 * hexRing.bitCount-1) {
                 animationStep = 0;
             } else {
                 animationStep++;
@@ -109,7 +114,7 @@
 
         function showAlternatingPattern() {
             clearInterval(animationTimer);
-            for (let i=0; i<hexRing.numSlots; ++i) {
+            for (let i=0; i<hexRing.bitCount; ++i) {
                 if (i % 2 === 0) {
                     data.setBit(i);
                 } else {
@@ -122,7 +127,7 @@
 
         function showRandomData() {
             clearInterval(animationTimer);
-            for (let i=0; i<hexRing.numSlots; ++i) {
+            for (let i=0; i<hexRing.bitCount; ++i) {
                 if (Math.random() > 0.5) {
                     data.setBit(i);
                 } else {
@@ -138,7 +143,7 @@
         document.getElementById('alternatingDataBtn').addEventListener('click', showAlternatingPattern);
 
         document.querySelectorAll('input').forEach(input => input.addEventListener('input', init));
-        document.getElementById('input-show-arc-centers').addEventListener('change', init);
+        document.querySelectorAll('[type="checkbox"]').forEach(checkbox => checkbox.addEventListener('change', init));
 
         init();
     </script>

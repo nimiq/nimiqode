@@ -59,16 +59,27 @@ class Nimiqode {
          return NimiqodeHeader.calculateLength(numHexRings) + lengthPayload + lengthErrorCorrection;
     }
 
+    static createHexagonRing(index, setFinderPattern=false) {
+        const hexRing = new HexagonRing(NimiqodeSpecification.HEXRING_INNERMOST_RADIUS
+            + index * NimiqodeSpecification.HEXRING_RING_DISTANCE, NimiqodeSpecification.HEXRING_BORDER_RADIUS,
+            NimiqodeSpecification.HEXRING_START_END_OFFSET, NimiqodeSpecification.HEXRING_ADDITIONAL_SLOT_DISTANCE,
+            NimiqodeSpecification.HEXRING_SLOT_LENGTH);
+        if (setFinderPattern) {
+            // all the rings have the counterclockwise and clockwise finder pattern set, just the innermost ring has the
+            // clockwise finder pattern unset.
+            hexRing.setFinderPattern(true, index!==0);
+        }
+        return hexRing;
+    }
+
     _createHexagonRings(payloadLength, errorCorrectionLength) {
-        let nextHexagonRadius = NimiqodeSpecification.HEXRING_INNERMOST_RADIUS;
         let totalBits = 0;
+        let hexagonRingCount = 0;
         do {
-            const hexRing = new HexagonRing(nextHexagonRadius, NimiqodeSpecification.HEXRING_BORDER_RADIUS,
-                NimiqodeSpecification.HEXRING_START_END_OFFSET, NimiqodeSpecification.HEXRING_ADDITIONAL_SLOT_DISTANCE,
-                NimiqodeSpecification.HEXRING_SLOT_LENGTH);
+            const hexRing = Nimiqode.createHexagonRing(hexagonRingCount, true);
             this._hexagonRings.push(hexRing);
-            totalBits += hexRing.numSlots;
-            nextHexagonRadius += NimiqodeSpecification.HEXRING_RING_DISTANCE;
+            totalBits += hexRing.bitCount;
+            ++hexagonRingCount;
         } while (totalBits < Nimiqode.calculateLength(this._hexagonRings.length, payloadLength, errorCorrectionLength));
         return totalBits;
     }
@@ -76,8 +87,8 @@ class Nimiqode {
     _assignHexagonRingData() {
         let handledBits = 0;
         for (const hexRing of this._hexagonRings) {
-            hexRing.data = new BitArray(this._data, handledBits, handledBits + hexRing.numSlots);
-            handledBits += hexRing.numSlots;
+            hexRing.data = new BitArray(this._data, handledBits, handledBits + hexRing.bitCount);
+            handledBits += hexRing.bitCount;
         }
     }
 

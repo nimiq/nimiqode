@@ -31,10 +31,15 @@ class HexagonRing {
         // num * slotLength + (num-1) * slotDistance = length
         // num * slotLength + num * slotDistance - slotDistance = length
         // num = (length + slotDistance) / (slotLength + slotDistance)
-        this._numSlots = Math.floor((this._length + slotDistance) / (slotLength + slotDistance));
+        this._slotCount = Math.floor((this._length + slotDistance) / (slotLength + slotDistance));
         // pick the slot length in a way that there is no remainder
         // slotLength = (length - (num-1) * slotDistance) / num
-        this._slotLength = (this._length - (this._numSlots-1) * slotDistance) / this._numSlots;
+        this._slotLength = (this._length - (this._slotCount-1) * slotDistance) / this._slotCount;
+
+        this._finderPattern = {
+            counterclockwise: false,
+            clockwise: false
+        };
     }
 
 
@@ -48,11 +53,20 @@ class HexagonRing {
 
 
     /**
-     * How many slots fit within this HexagonRing for the given slotDistance and slotLength.
+     * How many bits of data fit into this HexagonRing for the given slotDistance and slotLength.
      * @returns {number}
      */
-    get numSlots() {
-        return this._numSlots;
+    get bitCount() {
+        return this._slotCount - 2; // -2 for the finder pattern at start and end of the ring
+    }
+
+
+    /**
+     * How many slots fit into this HexagonRing for the given slotDistance and slotLength.
+     * @returns {number}
+     */
+    get slotCount() {
+        return this._slotCount;
     }
 
 
@@ -79,7 +93,7 @@ class HexagonRing {
      * @param {BitArray} data
      */
     set data(data) {
-        if (!(data instanceof BitArray) || data.length !== this._numSlots) {
+        if (!(data instanceof BitArray) || data.length !== this.bitCount) {
             throw Error('Illegal data.');
         }
         this._data = data;
@@ -92,6 +106,28 @@ class HexagonRing {
      */
     get data() {
         return this._data;
+    }
+
+
+    setFinderPattern(counterclockwise, clockwise) {
+        this._finderPattern['counterclockwise'] = counterclockwise;
+        this._finderPattern['clockwise'] = clockwise;
+    }
+
+
+    getFinderPattern(direction='counterclockwise') {
+        return this._finderPattern[direction];
+    }
+
+
+    isSlotSet(slotIndex) {
+        if (slotIndex === 0) {
+            return this._finderPattern['counterclockwise'];
+        } else if (slotIndex === this._slotCount-1) {
+            return this._finderPattern['clockwise'];
+        } else {
+            return !!this._data.getBit(slotIndex-1); // -1 to account for the counterclockwise finder pattern slot
+        }
     }
 
 
@@ -150,6 +186,20 @@ class HexagonRing {
     }
 
 
+    getDataSlotLocation(dataSlotIndex, type='center') {
+        return this.getSlotLocation(dataSlotIndex+1, type); // +1 for the finder pattern at the start of the ring
+    }
+
+
+    getFinderPatternSlotLocation(direction='counterclockwise', type='center') {
+        if (direction === 'counterclockwise') {
+            return this.getSlotLocation(0, type);
+        } else {
+            return this.getSlotLocation(this._slotCount - 1, type);
+        }
+    }
+
+
     /**
      * Get the coordinates and segment for a slot on the hexagon ring.
      * @param {number} slotIndex
@@ -157,7 +207,7 @@ class HexagonRing {
      * @returns {[Point,Line|Arc]}
      */
     getSlotLocation(slotIndex, type='center') {
-        if (typeof(slotIndex)!=='number' || slotIndex < 0 || slotIndex >= this._numSlots) {
+        if (typeof(slotIndex)!=='number' || slotIndex < 0 || slotIndex >= this._slotCount) {
             throw Error('Illegal index.');
         }
         let position = slotIndex * (this._slotLength + this._slotDistance) +
@@ -173,7 +223,7 @@ class HexagonRing {
             }
         }
         if (!segment) {
-            throw Error('Illegal index.'); // this shouldn't happen as we already check for numSlots
+            throw Error('Illegal index.'); // this shouldn't happen as we already check for bitCount
         }
         const coordinates = segment.positionToPoint(position);
         return [coordinates, segment];
