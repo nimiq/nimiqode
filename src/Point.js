@@ -8,36 +8,30 @@ class Point {
         if (typeof(x) !== 'number' || typeof(y) !== 'number') {
             throw Error('Illegal coordinates.');
         }
-        this._x = x;
-        this._y = y;
+        this.x = x;
+        this.y = y;
     }
-
-
-    /**
-     * x coordinate of the point
-     * @returns {number}
-     */
-    get x() {
-        return this._x;
-    }
-
-
-    /**
-     * y coordinate of the point
-     * @returns {number}
-     */
-    get y() {
-        return this._y;
-    }
-
 
     /**
      * Creates a copy of this point
      * @returns {Point}
      */
     copy() {
-        return new Point(this._x, this._y);
+        return new Point(this.x, this.y);
     }
+
+
+    /**
+     * Calculate the distance to another point.
+     * @param {Point} otherPoint
+     * @returns {number}
+     */
+    distanceTo(otherPoint) {
+        const deltaX = this.x - otherPoint.x;
+        const deltaY = this.y - otherPoint.y;
+        return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    }
+
 
     // TODO refactor these transformations to use the transformation matrix ?
 
@@ -51,9 +45,9 @@ class Point {
             throw Error('Illegal angle.');
         }
         const cos = Math.cos(-angle), sin = Math.sin(-angle);
-        const newX = this._x * cos - this._y * sin;
-        this._y = this._y * cos + this._x * sin;
-        this._x = newX;
+        const newX = this.x * cos - this.y * sin;
+        this.y = this.y * cos + this.x * sin;
+        this.x = newX;
         return this;
     }
 
@@ -67,8 +61,8 @@ class Point {
         if (typeof(factor) !== 'number') {
             throw Error('Illegal factor');
         }
-        this._x *= factor;
-        this._y *= factor;
+        this.x *= factor;
+        this.y *= factor;
         return this;
     }
 
@@ -83,8 +77,8 @@ class Point {
         if (typeof(xOffset) !== 'number' || typeof(yOffset) !== 'number') {
             throw Error('Illegal offset.');
         }
-        this._x += xOffset;
-        this._y += yOffset;
+        this.x += xOffset;
+        this.y += yOffset;
         return this;
     }
 

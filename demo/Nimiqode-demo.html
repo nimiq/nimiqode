@@ -37,7 +37,7 @@
         Line width: <input id="input-line-width" type="number" min="1"><br>
         Start/end offset: <input id="input-start-end-offset" type="number"><br>
         Slot length: <input id="input-slot-length" type="number"><br>
-        Additional slot distance: <input id="input-slot-distance" type="number"><br>
+        Additional slot distance: <input id="input-slot-distance" type="number" step="0.05"><br>
         Rotation: <input id="input-rotation" type="range" min="0" max="2" step="any" value="0"><br>
         Scale: <input id="input-scale" type="range" min="0.5" max="1.5" step="any" value="1">
     </div>
@@ -54,9 +54,11 @@
     document.getElementById('input-inner-radius').value = NimiqodeSpecification.HEXRING_INNERMOST_RADIUS;
     document.getElementById('input-border-radius').value = NimiqodeSpecification.HEXRING_BORDER_RADIUS;
     document.getElementById('input-line-width').value = NimiqodeSpecification.HEXRING_LINE_WIDTH;
-    document.getElementById('input-start-end-offset').value = NimiqodeSpecification.HEXRING_START_END_OFFSET;
+    document.getElementById('input-start-end-offset').value =
+        NimiqodeSpecification.HEXRING_START_END_OFFSET_BY_SLOT_LENGTH;
     document.getElementById('input-slot-length').value = NimiqodeSpecification.HEXRING_SLOT_LENGTH;
-    document.getElementById('input-slot-distance').value = NimiqodeSpecification.HEXRING_ADDITIONAL_SLOT_DISTANCE;
+    document.getElementById('input-slot-distance').value =
+        NimiqodeSpecification.HEXRING_ADDITIONAL_SLOT_DISTANCE_BY_SLOT_LENGTH;
 
     function render() {
         const data = textEncoder.encode(document.getElementById('textarea-data').value);
@@ -66,10 +68,10 @@
             parseFloat(document.getElementById('input-inner-radius').value);
         NimiqodeSpecification.HEXRING_BORDER_RADIUS = parseFloat(document.getElementById('input-border-radius').value);
         NimiqodeSpecification.HEXRING_LINE_WIDTH = parseFloat(document.getElementById('input-line-width').value);
-        NimiqodeSpecification.HEXRING_START_END_OFFSET =
+        NimiqodeSpecification.HEXRING_START_END_OFFSET_BY_SLOT_LENGTH =
             parseFloat(document.getElementById('input-start-end-offset').value);
         NimiqodeSpecification.HEXRING_SLOT_LENGTH = parseFloat(document.getElementById('input-slot-length').value);
-        NimiqodeSpecification.HEXRING_ADDITIONAL_SLOT_DISTANCE =
+        NimiqodeSpecification.HEXRING_ADDITIONAL_SLOT_DISTANCE_BY_SLOT_LENGTH =
             parseFloat(document.getElementById('input-slot-distance').value);
         const errorCorrectionFactor = parseFloat(document.getElementById('input-error-correction-factor').value);
         nimiqode = new Nimiqode(data, errorCorrectionFactor);

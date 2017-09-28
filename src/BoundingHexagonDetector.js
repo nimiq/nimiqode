@@ -335,6 +335,9 @@ class BoundingHexagonDetector {
                     line2StartX, line2StartY, line2EndX, line2EndY, boundingHexagonBuffer, i * 2)) {
                 throw Error('Not found. Convex hull is not a hexagon.');
             }
+            if (boundingHexagonBuffer[i * 2] < 0 || boundingHexagonBuffer[i * 2 + 1] < 0) {
+                throw Error('Not found. The hexagon extends over the image boundaries.');
+            }
         }
 
         // calculate the side lengths
@@ -409,7 +412,7 @@ class BoundingHexagonDetector {
  * Max allowed angle in degree between two line segments to be considered a straight line.
  * @type {number}
  */
-BoundingHexagonDetector.MAX_STRAIGHT_LINE_ANGLE_DEVIATION = 0.005;
+BoundingHexagonDetector.MAX_STRAIGHT_LINE_ANGLE_DEVIATION = 0.02;
 BoundingHexagonDetector.MAX_STRAIGHT_LINE_ANGLE_DEVIATION_SIN =
     Math.sin(BoundingHexagonDetector.MAX_STRAIGHT_LINE_ANGLE_DEVIATION * Math.PI);
-BoundingHexagonDetector.MAX_SIDE_LENGTH_DEVIATION_PERCENT = 0.25;
+BoundingHexagonDetector.MAX_SIDE_LENGTH_DEVIATION_PERCENT = 0.15;

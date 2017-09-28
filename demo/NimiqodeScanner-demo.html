@@ -10,8 +10,18 @@
     <script src="../src/BoundingRectDetector.js"></script>
     <script src="../src/BoundingHexagonDetector.js"></script>
     <script src="../src/HexagonRingDetector.js"></script>
+    <script src="../src/PerspectiveTransformationMatrix.js"></script>
+
+    <script src="../src/BitArray.js"></script>
     <script src="../src/Point.js"></script>
-    <script src="../src/DebugRenderUtils.js"></script>
+    <script src="../src/Line.js"></script>
+    <script src="../src/Arc.js"></script>
+    <script src="../src/HexagonRing.js"></script>
+    <script src="../src/NimiqodeSpecification.js"></script>
+    <script src="../src/NimiqodeHeader.js"></script>
+    <script src="../src/Nimiqode.js"></script>
+
+    <script src="ScannerDemoRenderUtils.js"></script>
 </head>
 <body>
 <style>
@@ -54,27 +64,36 @@
             hexagonRingsContext.putImageData(imageData, 0, 0);
         } else if (eventType === 'bounding-rect') {
             convexHullContext.strokeStyle = 'blue';
-            DebugRenderUtils.renderBoundingRect(data, convexHullContext);
+            ScannerDemoRenderUtils.renderBoundingRect(data, convexHullContext);
         } else if (eventType === 'convex-hull-candidates') {
             convexHullContext.fillStyle = 'red';
-            DebugRenderUtils.renderPoints(data, convexHullContext);
+            ScannerDemoRenderUtils.renderPoints(data, convexHullContext);
         } else if (eventType === 'convex-hull') {
             convexHullContext.strokeStyle = 'cyan';
             convexHullContext.fillStyle = 'green';
-            DebugRenderUtils.renderPolygon(data, convexHullContext);
+            ScannerDemoRenderUtils.renderPolygon(data, convexHullContext);
         } else if (eventType === 'longest-convex-hull-sides') {
             boundingHexagonContext.strokeStyle = 'cyan';
             boundingHexagonContext.lineWidth = 3;
             boundingHexagonContext.fillStyle = 'green';
-            DebugRenderUtils.renderLines(data, boundingHexagonContext);
+            ScannerDemoRenderUtils.renderLines(data, boundingHexagonContext);
         } else if (eventType === 'bounding-hexagon') {
             boundingHexagonContext.strokeStyle = 'blue';
             boundingHexagonContext.lineWidth = 1;
             boundingHexagonContext.fillStyle = 'red';
-            DebugRenderUtils.renderBoundingHexagon(data, boundingHexagonContext);
+            ScannerDemoRenderUtils.renderBoundingHexagon(data, boundingHexagonContext);
         } else if (eventType === 'orientation-finder') {
             hexagonRingsContext.strokeStyle = 'cyan';
-            DebugRenderUtils.renderLines(data, hexagonRingsContext);
+            hexagonRingsContext.fillStyle = 'red';
+            ScannerDemoRenderUtils.renderLines(data, hexagonRingsContext);
+        } else if (eventType === 'finder-pattern') {
+            hexagonRingsContext.strokeStyle = 'teal';
+            hexagonRingsContext.fillStyle = 'margenta';
+            ScannerDemoRenderUtils.renderFinderPattern(data, hexagonRingsContext);
+        } else if (eventType === 'hexagon-rings') {
+            hexagonRingsContext.fillStyle = 'lightblue';
+            const [hexagonRings, transformationMatrix] = data;
+            ScannerDemoRenderUtils.renderHexagonRingSlots(hexagonRings, transformationMatrix, hexagonRingsContext);
         }
     }
 

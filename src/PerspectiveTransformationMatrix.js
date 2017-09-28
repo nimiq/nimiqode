@@ -17,8 +17,14 @@ class PerspectiveTransformationMatrix {
     }
 
 
-    static fromPointsToPoints(srcPoint0, srcPoint1, srcPoint2, srcPoint3,
-                              dstPoint0, dstPoint1, dstPoint2, dstPoint3) {
+    copy() {
+        return new PerspectiveTransformationMatrix(this.a11, this.a12, this.a13, this.a21, this.a22, this.a23,
+            this.a31, this.a32, this.a33);
+    }
+
+
+    static fromCorrespondingPoints(srcPoint0, srcPoint1, srcPoint2, srcPoint3,
+                                   dstPoint0, dstPoint1, dstPoint2, dstPoint3) {
         // Create a transformation matrix from four source points that get mapped to four destination points.
         // We do this by combining a transformation from source coordinates to base the base square and the from the
         // base square to the destination points. (See page 56 in the book "Digital Image Warping").
@@ -74,16 +80,17 @@ class PerspectiveTransformationMatrix {
 
     static _fromPointsToBase(srcPoint0, srcPoint1, srcPoint2, srcPoint3) {
         // This is simply the inverse transformation matrix to _fromBaseToPoints.
-        // The inverse can be computed as adjugate divided by determinant. As homogeneous coordinates don't care about
-        // scalar multiplications and the the determinant is a scalar, we can simply ignore it and use the adjugate.
-        // (See "Digital Image Warping", page 52).
         // The result is the same as from step 4 in the stackexchange answer.
         return PerspectiveTransformationMatrix._fromBaseToPoints(srcPoint0, srcPoint1, srcPoint2, srcPoint3)
-            ._convertToAdjugate();
+            .invert();
     }
 
 
-    _convertToAdjugate() {
+    invert() {
+        // The inverse can be computed as adjugate divided by determinant. As homogeneous coordinates don't care about
+        // scalar multiplications and the the determinant is a scalar, we can simply ignore it and use the adjugate.
+        // (See "Digital Image Warping", page 52).
+        // So here, we are actually computing the adjugate, not the inverse.
         const a11 = this.a11, a12 = this.a12, a13 = this.a13, a21 = this.a21, a22 = this.a22, a23 = this.a23,
             a31 = this.a31, a32 = this.a32, a33 = this.a33;
         this.a11 = a22 * a33 - a23 * a32;
@@ -95,6 +102,7 @@ class PerspectiveTransformationMatrix {
         this.a31 = a21 * a32 - a22 * a31;
         this.a32 = a12 * a31 - a11 * a32;
         this.a33 = a11 * a22 - a12 * a21;
+        return this;
     }
 
 
@@ -110,5 +118,6 @@ class PerspectiveTransformationMatrix {
         this.a31 = a11 * other.a31 + a21 * other.a32 + a31 * other.a33;
         this.a32 = a12 * other.a31 + a22 * other.a32 + a32 * other.a33;
         this.a33 = a13 * other.a31 + a23 * other.a32 + a33 * other.a33;
+        return this;
     }
 }

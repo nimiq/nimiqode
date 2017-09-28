@@ -62,8 +62,9 @@ class Nimiqode {
     static createHexagonRing(index, setFinderPattern=false) {
         const hexRing = new HexagonRing(NimiqodeSpecification.HEXRING_INNERMOST_RADIUS
             + index * NimiqodeSpecification.HEXRING_RING_DISTANCE, NimiqodeSpecification.HEXRING_BORDER_RADIUS,
-            NimiqodeSpecification.HEXRING_START_END_OFFSET, NimiqodeSpecification.HEXRING_ADDITIONAL_SLOT_DISTANCE,
-            NimiqodeSpecification.HEXRING_SLOT_LENGTH);
+            NimiqodeSpecification.HEXRING_START_END_OFFSET_BY_SLOT_LENGTH * NimiqodeSpecification.HEXRING_SLOT_LENGTH,
+            NimiqodeSpecification.HEXRING_ADDITIONAL_SLOT_DISTANCE_BY_SLOT_LENGTH *
+            NimiqodeSpecification.HEXRING_SLOT_LENGTH, NimiqodeSpecification.HEXRING_SLOT_LENGTH);
         if (setFinderPattern) {
             // all the rings have the counterclockwise and clockwise finder pattern set, just the innermost ring has the
             // clockwise finder pattern unset.

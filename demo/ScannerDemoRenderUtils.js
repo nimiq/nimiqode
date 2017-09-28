@@ -1,4 +1,4 @@
-class DebugRenderUtils {
+class ScannerDemoRenderUtils {
     static renderPolygon(points, canvasContext) {
         canvasContext.beginPath();
         canvasContext.moveTo(points[0], points[1]);
@@ -67,5 +67,36 @@ class DebugRenderUtils {
         canvasContext.stroke();
         // render center
         canvasContext.fillRect(boundingHexagon.center.x - 2, boundingHexagon.center.y - 2, 4, 4);
+    }
+
+
+    static renderFinderPattern(finderPattern, canvasContext) {
+        canvasContext.beginPath();
+        for (const direction of ['counterclockwise', 'clockwise']) {
+            const points = finderPattern[direction];
+            let prev;
+            for (const point of points) {
+                if (!prev) {
+                    canvasContext.moveTo(point.x, point.y);
+                } else {
+                    canvasContext.lineTo(point.x, point.y);
+                }
+            }
+            for (const point of points) {
+                canvasContext.fillRect(point.x-2, point.y-2, 4, 4);
+            }
+        }
+        canvasContext.stroke();
+    }
+
+
+    static renderHexagonRingSlots(hexagonRings, transformationMatrix, canvasContext) {
+        for (const hexRing of hexagonRings) {
+            for (let slot=0; slot<hexRing.bitCount; ++slot) {
+                const [slotLocation,] = hexRing.getSlotLocation(slot);
+                transformationMatrix.transform(slotLocation);
+                canvasContext.fillRect(slotLocation.x-1, slotLocation.y-1, 2, 2);
+            }
+        }
     }
 }
