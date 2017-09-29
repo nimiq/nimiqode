@@ -92,7 +92,7 @@ class ScannerDemoRenderUtils {
 
     static renderHexagonRingSlots(hexagonRings, transformationMatrix, canvasContext) {
         for (const hexRing of hexagonRings) {
-            for (let slot=0; slot<hexRing.bitCount; ++slot) {
+            for (let slot=0; slot<hexRing.slotCount; ++slot) {
                 const [slotLocation,] = hexRing.getSlotLocation(slot);
                 transformationMatrix.transform(slotLocation);
                 canvasContext.fillRect(slotLocation.x-1, slotLocation.y-1, 2, 2);

@@ -29,9 +29,11 @@ class HexagonRingDetector {
         transformationMatrix = PerspectiveTransformationMatrix.fromCorrespondingPoints(
             outerCorners[1], outerCorners[2], outerCorners[4], outerCorners[5],
             boundingHexCorners[1], boundingHexCorners[2], boundingHexCorners[4], boundingHexCorners[5]);
-        if (debugCallback) {
-            debugCallback('hexagon-rings', [hexagonRings, transformationMatrix]);
+        // set the finder pattern slots
+        for (const hexagonRing of hexagonRings) {
+            HexagonRingDetector._readFinderPatternSlots(hexagonRing, transformationMatrix, image);
         }
+        return [hexagonRings, transformationMatrix];
     }
 
 
@@ -118,11 +120,10 @@ class HexagonRingDetector {
         // on shorter distance we encountered the pattern, on larger distance only when > 1 hex ring.
         const shorterDistanceFinderPattern = Math.min(distanceFinderPatternCCW, distanceFinderPatternCW);
         const longerDistanceFinderPattern = Math.max(distanceFinderPatternCCW, distanceFinderPatternCW);
-        const assumedSlotLength = shorterDistanceFinderPattern /
-            NimiqodeSpecification.HEXRING_START_END_OFFSET_BY_SLOT_LENGTH;
-        const assumedAdditionalSlotDistance = assumedSlotLength *
-            NimiqodeSpecification.HEXRING_ADDITIONAL_SLOT_DISTANCE_BY_SLOT_LENGTH;
-        const assumedDistanceNextSlot = shorterDistanceFinderPattern+assumedSlotLength+assumedAdditionalSlotDistance;
+        const scaleFactor = shorterDistanceFinderPattern / NimiqodeSpecification.HEXRING_START_END_OFFSET;
+        const assumedSlotLength = scaleFactor * NimiqodeSpecification.HEXRING_SLOT_LENGTH;
+        const assumedSlotDistance = scaleFactor * NimiqodeSpecification.HEXRING_SLOT_DISTANCE;
+        const assumedDistanceNextSlot = shorterDistanceFinderPattern + assumedSlotLength + assumedSlotDistance;
         if (longerDistanceFinderPattern >= assumedDistanceNextSlot) {
             // seems like the finder pattern is empty and the slot we saw was the second or later. So assume we have
             // only one ring.
@@ -318,10 +319,9 @@ class HexagonRingDetector {
 
     static _containsBlackInNeighbourhood(x, y, image, neighbourSize = HexagonRingDetector.SEARCH_NEIGHBOURHOOD_SIZE) {
         const pixels = image.pixels;
-        const halfNeighbourhoodSize = Math.floor(neighbourSize / 2);
         // no need to test whether out of image bounds as the pixels will just give undefined for pixels out of range
-        const left = x - halfNeighbourhoodSize,
-            top = y - halfNeighbourhoodSize;
+        const left = Math.round(x - neighbourSize / 2),
+            top = Math.round(y - neighbourSize / 2);
         let rowStart = top * image.width + left;
         for (let yIndex = 0; yIndex < neighbourSize; ++yIndex) {
             for (let xIndex = 0; xIndex < neighbourSize; ++xIndex) {
@@ -333,6 +333,29 @@ class HexagonRingDetector {
             rowStart += image.width;
         }
         return false;
+    }
+
+
+    static _readFinderPatternSlots(hexagonRing, transformationMatrix, image) {
+        const [counterclockwiseLocation,] = hexagonRing.getFinderPatternSlotLocation('counterclockwise');
+        transformationMatrix.transform(counterclockwiseLocation);
+        const counterclockwiseSet = HexagonRingDetector._containsBlackInNeighbourhood(counterclockwiseLocation.x,
+            counterclockwiseLocation.y, image, 2);
+        const [clockwiseLocation,] = hexagonRing.getFinderPatternSlotLocation('clockwise');
+        transformationMatrix.transform(clockwiseLocation);
+        const clockwiseSet = HexagonRingDetector._containsBlackInNeighbourhood(clockwiseLocation.x,
+            clockwiseLocation.y, image, 2);
+        hexagonRing.setFinderPattern(counterclockwiseSet, clockwiseSet);
+    }
+
+
+    static readDataSlots(hexagonRing, transformationMatrix, image) {
+        for (let i=0; i < hexagonRing.bitCount; ++i) {
+            const [slotLocation,] = hexagonRing.getDataSlotLocation(i);
+            transformationMatrix.transform(slotLocation);
+            hexagonRing.data.setValue(i, HexagonRingDetector._containsBlackInNeighbourhood(slotLocation.x,
+                slotLocation.y, image, 2));
+        }
     }
 }
 HexagonRingDetector.SEARCH_LINE_WIDTH = 8;

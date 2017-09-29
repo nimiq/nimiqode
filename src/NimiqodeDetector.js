@@ -46,9 +46,18 @@ class NimiqodeDetector {
             debugCallback('bounding-hexagon', boundingHexagon);
         }
         // detect hexagon rings
-        HexagonRingDetector.detectHexagonRings(boundingHexagon, image, debugCallback);
+        const [hexagonRings, perspectiveTransform] = HexagonRingDetector.detectHexagonRings(boundingHexagon, image,
+            debugCallback);
+        // read the data bits
+        const totalBits = hexagonRings.reduce((count, hexRing) => count + hexRing.bitCount, 0);
+        const data = new BitArray(totalBits);
+        Nimiqode.assignHexagonRingData(hexagonRings, data);
+        for (const hexRing of hexagonRings) {
+            HexagonRingDetector.readDataSlots(hexRing, perspectiveTransform, image);
+        }
+        if (debugCallback) {
+            debugCallback('hexagon-rings', [hexagonRings, perspectiveTransform]);
+            debugCallback('data', data);
+        }
     }
-
-
-
 }

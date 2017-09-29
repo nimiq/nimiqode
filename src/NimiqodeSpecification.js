@@ -10,8 +10,8 @@ NimiqodeSpecification.HEXRING_BORDER_RADIUS = 50;
 NimiqodeSpecification.HEXRING_RING_DISTANCE = 50;
 NimiqodeSpecification.HEXRING_LINE_WIDTH = 10;
 NimiqodeSpecification.HEXRING_SLOT_LENGTH = 10;
-NimiqodeSpecification.HEXRING_ADDITIONAL_SLOT_DISTANCE_BY_SLOT_LENGTH = 0; // in terms of slot length
-NimiqodeSpecification.HEXRING_START_END_OFFSET_BY_SLOT_LENGTH = 3.5; // in terms of slot length
+NimiqodeSpecification.HEXRING_SLOT_DISTANCE = 0;
+NimiqodeSpecification.HEXRING_START_END_OFFSET = 35;
 
 // header
 NimiqodeSpecification.HEADER_LENGTH_VERSION = 4;
