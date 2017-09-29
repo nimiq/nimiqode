@@ -44,6 +44,15 @@ class HexagonRing {
 
 
     /**
+     * Outer radius of the hexagon, which is the distance of the virtual corners to the center
+     * @returns {number}
+     */
+    get outerRadius() {
+        return this._outerRadius;
+    }
+
+
+    /**
      * Total length of the hexagon ring which is the sum over the lengths of all its segments.
      * @returns {number}
      */

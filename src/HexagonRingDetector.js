@@ -13,10 +13,10 @@ class HexagonRingDetector {
         // From that one hexagon ring calculate a preliminary transformation matrix. We can take any 4 of the 6 points
         // in correspondence.
         const innerCorners = hexagonRings[0].virtualCorners;
-        let transformationMatrix = PerspectiveTransformationMatrix.fromCorrespondingPoints(
+        const preliminaryTransformationMatrix = PerspectiveTransformationMatrix.fromCorrespondingPoints(
             innerCorners[1], innerCorners[2], innerCorners[4], innerCorners[5],
             boundingHexCorners[1], boundingHexCorners[2], boundingHexCorners[4], boundingHexCorners[5]);
-        const preliminaryInverseTransform = transformationMatrix.copy().invert();
+        const preliminaryInverseTransform = preliminaryTransformationMatrix.copy().invert();
         // find the number of hexagon rings
         const hexagonRingCount = HexagonRingDetector._findHexagonRingCount(boundingHexagon, preliminaryInverseTransform,
             image, debugCallback);
@@ -24,11 +24,15 @@ class HexagonRingDetector {
         for (let i=1; i<hexagonRingCount; ++i) {
             hexagonRings.push(Nimiqode.createHexagonRing(i));
         }
-        // TODO take the line width into account
-        const outerCorners = hexagonRings[hexagonRings.length - 1].virtualCorners;
-        transformationMatrix = PerspectiveTransformationMatrix.fromCorrespondingPoints(
-            outerCorners[1], outerCorners[2], outerCorners[4], outerCorners[5],
-            boundingHexCorners[1], boundingHexCorners[2], boundingHexCorners[4], boundingHexCorners[5]);
+        // calculate the actual transformation matrix. The preliminary one mapped the innermost hex ring to the bounding
+        // hex in the image, thus scaling up. We correct the transformation now by first scaling down and in this
+        // process also take the line width into account such that the points get mapped to the line middle instead of
+        // the outer side of the lines. We divide the line width by 3 instead of 2 as the lines we get in the binarized
+        // image are a little thinner.
+        const scalingFactor = hexagonRings[0].outerRadius /
+            (hexagonRings[hexagonRingCount-1].outerRadius + NimiqodeSpecification.HEXRING_LINE_WIDTH/3);
+        const transformationMatrix = PerspectiveTransformationMatrix.fromScalingFactor(scalingFactor)
+            .multiplyWithMatrix(preliminaryTransformationMatrix);
         // set the finder pattern slots
         for (const hexagonRing of hexagonRings) {
             HexagonRingDetector._readFinderPatternSlots(hexagonRing, transformationMatrix, image);
@@ -242,8 +246,12 @@ class HexagonRingDetector {
                             if (Math.max(distance, prevDist) / Math.min(distance, prevDist) >
                                 HexagonRingDetector.FINDER_PATTERN_MARK_DISTANCE_TOLERANCE) {
                                 // More than 20% difference in length. We'll not consider this another object along the
-                                // finder pattern anymore. Stop the search.
-                                return true;
+                                // finder pattern anymore.
+                                if (debug) {
+                                    // pop that invalid point
+                                    debugOriginalMarkPoints.pop();
+                                }
+                                return true; // stop the search
                             }
                         }
                         markDistances.push(distance);

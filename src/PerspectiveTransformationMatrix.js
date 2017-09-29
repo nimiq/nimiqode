@@ -23,6 +23,13 @@ class PerspectiveTransformationMatrix {
     }
 
 
+    static fromScalingFactor(scaleX, scaleY=scaleX) {
+        return new PerspectiveTransformationMatrix(scaleX, 0, 0,
+                                                    0, scaleY, 0,
+                                                    0, 0, 1);
+    }
+
+
     static fromCorrespondingPoints(srcPoint0, srcPoint1, srcPoint2, srcPoint3,
                                    dstPoint0, dstPoint1, dstPoint2, dstPoint3) {
         // Create a transformation matrix from four source points that get mapped to four destination points.
@@ -31,7 +38,7 @@ class PerspectiveTransformationMatrix {
         // This is the same as step 5 in the stackexchange answer.
         const toDest = PerspectiveTransformationMatrix._fromBaseToPoints(dstPoint0, dstPoint1, dstPoint2, dstPoint3);
         const fromSrc = PerspectiveTransformationMatrix._fromPointsToBase(srcPoint0, srcPoint1, srcPoint2, srcPoint3);
-        return toDest._multiplyWithMatrix(fromSrc);
+        return fromSrc.multiplyWithMatrix(toDest);
     }
 
 
@@ -106,18 +113,18 @@ class PerspectiveTransformationMatrix {
     }
 
 
-    _multiplyWithMatrix(other) {
+    multiplyWithMatrix(other) {
         const a11 = this.a11, a12 = this.a12, a13 = this.a13, a21 = this.a21, a22 = this.a22, a23 = this.a23,
             a31 = this.a31, a32 = this.a32, a33 = this.a33;
-        this.a11 = a11 * other.a11 + a21 * other.a12 + a31 * other.a13;
-        this.a12 = a12 * other.a11 + a22 * other.a12 + a32 * other.a13;
-        this.a13 = a13 * other.a11 + a23 * other.a12 + a33 * other.a13;
-        this.a21 = a11 * other.a21 + a21 * other.a22 + a31 * other.a23;
-        this.a22 = a12 * other.a21 + a22 * other.a22 + a32 * other.a23;
-        this.a23 = a13 * other.a21 + a23 * other.a22 + a33 * other.a23;
-        this.a31 = a11 * other.a31 + a21 * other.a32 + a31 * other.a33;
-        this.a32 = a12 * other.a31 + a22 * other.a32 + a32 * other.a33;
-        this.a33 = a13 * other.a31 + a23 * other.a32 + a33 * other.a33;
+        this.a11 = other.a11 * a11 + other.a21 * a12 + other.a31 * a13;
+        this.a12 = other.a12 * a11 + other.a22 * a12 + other.a32 * a13;
+        this.a13 = other.a13 * a11 + other.a23 * a12 + other.a33 * a13;
+        this.a21 = other.a11 * a21 + other.a21 * a22 + other.a31 * a23;
+        this.a22 = other.a12 * a21 + other.a22 * a22 + other.a32 * a23;
+        this.a23 = other.a13 * a21 + other.a23 * a22 + other.a33 * a23;
+        this.a31 = other.a11 * a31 + other.a21 * a32 + other.a31 * a33;
+        this.a32 = other.a12 * a31 + other.a22 * a32 + other.a32 * a33;
+        this.a33 = other.a13 * a31 + other.a23 * a32 + other.a33 * a33;
         return this;
     }
 }

@@ -21,6 +21,8 @@
     <script src="../src/NimiqodeHeader.js"></script>
     <script src="../src/Nimiqode.js"></script>
 
+    <script src="../src/error-correction/ldpc.js"></script>
+
     <script src="ScannerDemoRenderUtils.js"></script>
 </head>
 <body>
@@ -53,6 +55,8 @@
     const hexagonRingsContext = hexagonRingsCanvas.getContext('2d');
     const camera = new Camera(document.getElementById('video'));
     let imageBuffer;
+
+    const referenceNimiqode =  new Nimiqode(new TextEncoder('utf-8').encode('Hello world.'));
 
     function debugCallback(eventType, data) {
         if (eventType === 'grayscale-image') {
@@ -94,6 +98,24 @@
             hexagonRingsContext.fillStyle = 'lightblue';
             const [hexagonRings, transformationMatrix] = data;
             ScannerDemoRenderUtils.renderHexagonRingSlots(hexagonRings, transformationMatrix, hexagonRingsContext);
+            // check the erroneous bits
+            if (hexagonRings.length === referenceNimiqode.hexagonRings.length) {
+                hexagonRingsContext.fillStyle = 'red';
+                let bitErrors = 0;
+                for (let i=0; i<hexagonRings.length; ++i) {
+                    const scannedHexRing = hexagonRings[i];
+                    const referenceHexRing = referenceNimiqode.hexagonRings[i];
+                    for (let j=0; j<scannedHexRing.data.length; ++j) {
+                        if (scannedHexRing.data.getBit(j) !== referenceHexRing.data.getBit(j)) {
+                            ++bitErrors;
+                            const [bitLocation,] = scannedHexRing.getDataSlotLocation(j);
+                            transformationMatrix.transform(bitLocation);
+                            hexagonRingsContext.fillRect(bitLocation.x-1, bitLocation.y-1, 2, 2);
+                        }
+                    }
+                }
+                console.log('bit error rate:', bitErrors / referenceNimiqode._data.length, 'absolute:', bitErrors);
+            }
         }
     }
 
