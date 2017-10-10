@@ -21,7 +21,11 @@
     <script src="../src/NimiqodeHeader.js"></script>
     <script src="../src/Nimiqode.js"></script>
 
-    <script src="../src/error-correction/ldpc.js"></script>
+
+    <script type="text/javascript">
+        window.LDPC_PATH = '/node_modules/ldpc-js/dist/';
+    </script>
+    <script src="../node_modules/ldpc-js/LDPC.js"></script>
 
     <script src="ScannerDemoRenderUtils.js"></script>
 </head>
@@ -56,7 +60,9 @@
     const camera = new Camera(document.getElementById('video'));
     let imageBuffer;
 
-    const referenceNimiqode =  new Nimiqode(new TextEncoder('utf-8').encode('Hello world.'));
+    let referenceNimiqode;
+    (new Nimiqode(new TextEncoder('utf-8').encode('Hello world.')))
+        .then(nimiqode => referenceNimiqode = nimiqode);
 
     function debugCallback(eventType, data) {
         if (eventType === 'grayscale-image') {

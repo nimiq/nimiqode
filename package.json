@@ -1,0 +1,27 @@
+{
+  "name": "nimiqode",
+  "version": "1.0.0",
+  "description": "A 2D barcode in a hexagon shape.",
+  "main": "Nimiqode.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nimiq-design/nimiqode.git"
+  },
+  "keywords": [
+    "nimiqode",
+    "hexagon",
+    "barcode"
+  ],
+  "author": "Daniel M",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/nimiq-design/nimiqode/issues"
+  },
+  "homepage": "https://github.com/nimiq-design/nimiqode#readme",
+  "dependencies": {
+    "ldpc-js": "git+https://github.com/danimoh/LDPC-JS.git"
+  }
+}

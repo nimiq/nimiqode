@@ -12,13 +12,17 @@ class Nimiqode {
         if (errorCorrectionFactor<0 || errorCorrectionFactor>NimiqodeSpecification.MAX_FACTOR_ERROR_CORRECTION_DATA) {
             throw Error('Illegal error correction factor.');
         }
-        const payloadBitArray = new BitArray(payload);
-        if (payloadBitArray.length > Math.pow(2, NimiqodeSpecification.HEADER_LENGTH_PAYLOAD_LENGTH) * 8) {
+        if (payload.length * 8 > Math.pow(2, NimiqodeSpecification.HEADER_LENGTH_PAYLOAD_LENGTH) * 8) {
             throw Error(`Your data is too long. Supported are up to
                 ${Math.pow(2, NimiqodeSpecification.HEADER_LENGTH_PAYLOAD_LENGTH)} bytes.`);
         }
+        return this._constructor(payload, errorCorrectionFactor, version);
+    }
+
+    async _constructor(payload, errorCorrectionFactor, version) {
+        const payloadBitArray = new BitArray(payload);
         this._version = version;
-        const preliminaryErrorCorrectionLength = Math.ceil(payloadBitArray.length / 8 * errorCorrectionFactor) * 8;
+        const preliminaryErrorCorrectionLength = Math.ceil(payloadBitArray.length * errorCorrectionFactor);
         this._hexagonRings = [];
         const dataLength = this._createHexagonRings(payloadBitArray.length, preliminaryErrorCorrectionLength);
 
@@ -26,21 +30,18 @@ class Nimiqode {
         this._data = new BitArray(dataLength);
         const headerLength = NimiqodeHeader.calculateLength(this._hexagonRings.length);
         this._header = new BitArray(this._data, 0, headerLength);
-        this._payload = new BitArray(this._data, headerLength, headerLength + payloadBitArray.length);
-        // assign sub bit array for error correction. This uses all of the remaining full bytes which can be more
-        // than the preliminaryErrorCorrectionLength bits by filling up empty leftover space in the last hexagon ring.
-        const errorCorrectionLength = Math.floor((dataLength - headerLength - this._payload.length) / 8) * 8;
-        this._errorCorrectionData = new BitArray(this._data, headerLength + this._payload.length,
-            headerLength + this._payload.length + errorCorrectionLength);
-        // TODO the <8 leftover bits might be used for parity
+        // Use all of the remaining bits which can be more than the preliminaryErrorCorrectionLength bits by filling up
+        // empty leftover space in the last hexagon ring.
+        const errorCorrectionLength = dataLength - headerLength - payloadBitArray.length;
+        this._encodedPayload = new BitArray(this._data, headerLength, headerLength + payloadBitArray.length +
+            errorCorrectionLength);
 
         // assemble data
-        NimiqodeHeader.write(this._header, version, this._payload.length, this._errorCorrectionData.length,
+        await NimiqodeHeader.write(this._header, version, payloadBitArray.length, errorCorrectionLength,
             new Array(this._hexagonRings.length).fill(0));
-        this._payload.writeBitArray(payloadBitArray);
-        this._writeErrorCorrectionData(payload);
-
+        await this._writeEncodedPayload(payloadBitArray.toArray(), errorCorrectionLength);
         Nimiqode.assignHexagonRingData(this._hexagonRings, this._data);
+        return this;
     }
 
     get payload() {
@@ -92,22 +93,10 @@ class Nimiqode {
         }
     }
 
-    _writeErrorCorrectionData(payloadBytes) {
-        // TODO creation of the LDPC matrices is super slow for high n, therefore we try to reduce the n by collecting
-        // multiple bits into larger numbers. Here we currently use bytes (8 bit) but if the plan is to keep using LDPC
-        // this could be generalized to any number of bits with payload.length % numBits === 0 &&
-        // errorCorrectionData.length % numBits === 0 and then also be used in the header.
-        const payloadByteLength = payloadBytes.byteLength;
-        const errorCorrectionByteLength = this._errorCorrectionData.length / 8;
-        const errorCorrectionEncoder = new LDPC({
-           n: payloadByteLength + errorCorrectionByteLength,
-           k: payloadByteLength,
-           modulo: Math.pow(2, 8), // whole bytes
-           randomSeed: 42
-        });
-        const encoded = errorCorrectionEncoder.encode(Array.from(payloadBytes));
-        for (let i=0; i<errorCorrectionByteLength; ++i) {
-            this._errorCorrectionData.writeUnsignedInteger(i*8, encoded[payloadByteLength + i], 8);
+    async _writeEncodedPayload(payloadBits, parityLength) {
+        const encodedPayload = await LDPC.encode(payloadBits, parityLength);
+        for (let i=0; i<encodedPayload.length; ++i) {
+            this._encodedPayload.setValue(i, encodedPayload[i]);
         }
     }
 }
