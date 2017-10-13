@@ -23,9 +23,9 @@
 
 
     <script type="text/javascript">
-        window.LDPC_PATH = '/node_modules/ldpc-js/dist/';
+        window.LDPC_PATH = 'https://danimoh.github.io/LDPC-JS/dist/';
     </script>
-    <script src="../node_modules/ldpc-js/LDPC.js"></script>
+    <script src="https://danimoh.github.io/LDPC-JS/LDPC.js"></script>
 
     <script src="ScannerDemoRenderUtils.js"></script>
 </head>
@@ -122,19 +122,22 @@
                 }
                 console.log('bit error rate:', bitErrors / referenceNimiqode._data.length, 'absolute:', bitErrors);
             }
+        } else if (eventType === 'nimiqode') {
+            // show the decoded message. Do it on requestAnimationFrame such that the canvases get painted first
+            requestAnimationFrame(() => alert('nimiqode data: ' + String.fromCharCode.apply(String, data._payload)));
         }
     }
 
-    function process() {
+    async function process() {
         if (camera.isFilming) {
             const snapshot = camera.takeSnapshot();
             try {
-                NimiqodeDetector.detect(snapshot, debugCallback);
+                await NimiqodeDetector.detect(snapshot, debugCallback);
             } catch(e) {
                 if (e.message.startsWith('Not found.')) {
                     console.log(e.message);
                 } else {
-                    throw e;
+                    console.error(e);
                 }
             }
         }

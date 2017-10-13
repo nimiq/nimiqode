@@ -1,10 +1,20 @@
 class Nimiqode {
     /**
-     * @param {Uint8Array} payload
-     * @param {number} errorCorrectionFactor
-     * @param {number} version
+     * @param {Uint8Array|Array.<HexagonRing>} payloadOrHexRings
+     * @param {number|BitArray} [errorCorrectionFactorOrData]
+     * @param {number} [version]
+     * @return {Promise.<Nimiqode>|null} instance or in case of error null
      */
-    constructor(payload, errorCorrectionFactor=NimiqodeSpecification.DEFAULT_FACTOR_ERROR_CORRECTION_DATA, version=0) {
+    constructor(payloadOrHexRings, errorCorrectionFactorOrData=NimiqodeSpecification.DEFAULT_FACTOR_ERROR_CORRECTION_DATA,
+                version=0) {
+        if (Array.isArray(payloadOrHexRings)) {
+            return this._constructFromScan(payloadOrHexRings, errorCorrectionFactorOrData);
+        } else {
+            return this._constructFromPayload(payloadOrHexRings, errorCorrectionFactorOrData, version);
+        }
+    }
+
+    async _constructFromPayload(payload, errorCorrectionFactor, version) {
         if (!(payload instanceof Uint8Array) || version !== NimiqodeSpecification.CURRENT_VERSION ||
             payload.byteLength === 0) {
             throw Error('Invalid argument.');
@@ -16,10 +26,6 @@ class Nimiqode {
             throw Error(`Your data is too long. Supported are up to
                 ${Math.pow(2, NimiqodeSpecification.HEADER_LENGTH_PAYLOAD_LENGTH)} bytes.`);
         }
-        return this._constructor(payload, errorCorrectionFactor, version);
-    }
-
-    async _constructor(payload, errorCorrectionFactor, version) {
         const payloadBitArray = new BitArray(payload);
         this._version = version;
         const preliminaryErrorCorrectionLength = Math.ceil(payloadBitArray.length * errorCorrectionFactor);
@@ -41,6 +47,32 @@ class Nimiqode {
             new Array(this._hexagonRings.length).fill(0));
         await this._writeEncodedPayload(payloadBitArray.toArray(), errorCorrectionLength);
         Nimiqode.assignHexagonRingData(this._hexagonRings, this._data);
+        return this;
+    }
+
+    async _constructFromScan(hexagonRings, data) {
+        this._hexagonRings = hexagonRings;
+        this._data = data;
+        const headerLength = NimiqodeHeader.calculateLength(this._hexagonRings.length);
+        this._header = new BitArray(this._data, 0, headerLength);
+        const [version, payloadLength, errorCorrectionLength, hexRingMasks] =
+            await NimiqodeHeader.read(this._header, hexagonRings.length);
+        console.log(version, payloadLength, errorCorrectionLength, headerLength, data.length);
+        if (version !== 0) {
+            throw Error('Unsupported version.');
+        }
+        if (headerLength + payloadLength + errorCorrectionLength !== data.length) {
+            throw Error('Wrong data length. Probably recognized wrong number of hexagon rings.');
+        }
+        this._version = version;
+        // decode payload
+        const encodedPayloadBitArray = new BitArray(this._data, headerLength);
+        const payloadBits = await LDPC.decode(encodedPayloadBitArray.toArray(), payloadLength, errorCorrectionLength);
+        this._payload = new Uint8Array(payloadLength / 8); // in byte
+        this._payloadBitArray = new BitArray(this._payload);
+        for (let i=0; i<payloadLength; ++i) {
+            this._payloadBitArray.setValue(i, payloadBits[i]);
+        }
         return this;
     }
 

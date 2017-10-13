@@ -225,10 +225,10 @@ class BitArray {
 
     /**
      * Read the whole BitArray to an array of 1s and 0s.
-     * @returns {Array.<number>}
+     * @returns {Uint8Array.<number>}
      */
     toArray() {
-        let result = new Array(this._length);
+        let result = new Uint8Array(this._length);
         for (let i=0; i<this._length; ++i) {
             result[i] = this.getBit(i);
         }

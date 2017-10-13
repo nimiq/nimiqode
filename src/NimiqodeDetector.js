@@ -12,7 +12,7 @@ class NimiqodeDetector {
      * @param {ImageData} rgbaImage
      * @param {debugCallback} debugCallback
      */
-    static detect(rgbaImage, debugCallback = null) {
+    static async detect(rgbaImage, debugCallback = null) {
         const imageWidth = rgbaImage.width, imageHeight = rgbaImage.height;
         // we allocate the buffers for luma and the binary image and other arrays within the buffer of the original rgb
         // image data to reduce the required heap memory. We can do this, as we won't need the rgb anymore after
@@ -59,5 +59,10 @@ class NimiqodeDetector {
             debugCallback('hexagon-rings', [hexagonRings, perspectiveTransform]);
             debugCallback('data', data);
         }
+        const nimiqode = await new Nimiqode(hexagonRings, data);
+        if (debugCallback) {
+            debugCallback('nimiqode', nimiqode);
+        }
+        return nimiqode;
     }
 }
