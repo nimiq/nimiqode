@@ -12,6 +12,8 @@ NimiqodeSpecification.HEXRING_LINE_WIDTH = 10;
 NimiqodeSpecification.HEXRING_SLOT_LENGTH = 10;
 NimiqodeSpecification.HEXRING_SLOT_DISTANCE = 0;
 NimiqodeSpecification.HEXRING_START_END_OFFSET = 35;
+NimiqodeSpecification.HEXRING_FINDER_PATTERN_LENGTH_SET = 1;
+NimiqodeSpecification.HEXRING_FINDER_PATTERN_LENGTH_UNSET = 3;
 
 // header
 NimiqodeSpecification.HEADER_LENGTH_VERSION = 4;

@@ -9,10 +9,16 @@ class HexagonRing {
      * @param {number} startEndOffset
      * @param {number} slotDistance
      * @param {number} slotLength
+     * @param {number} finderPatternClockwiseLength
+     * @param {number} finderPatternCounterclockwiseLength
+     * @param {boolean} finderPatternClockwiseSet
+     * @param {boolean} finderPatternCounterclockwiseSet
      */
-    constructor(innerRadius, borderRadius, startEndOffset, slotDistance, slotLength) {
+    constructor(innerRadius, borderRadius, startEndOffset, slotDistance, slotLength, finderPatternClockwiseLength,
+                finderPatternCounterclockwiseLength, finderPatternClockwiseSet, finderPatternCounterclockwiseSet) {
         if (typeof(innerRadius)!=='number' || typeof(borderRadius)!=='number' || typeof(startEndOffset)!=='number' ||
             typeof(slotDistance)!=='number' || typeof(slotLength)!=='number' || startEndOffset<1 || borderRadius<1 ||
+            typeof(finderPatternClockwiseLength)!=='number' || typeof(finderPatternCounterclockwiseLength)!=='number' ||
             slotLength < 1) {
             throw('Illegal arguments');
         }
@@ -37,8 +43,10 @@ class HexagonRing {
         this._slotLength = (this._length - (this._slotCount-1) * slotDistance) / this._slotCount;
 
         this._finderPattern = {
-            counterclockwise: false,
-            clockwise: false
+            counterclockwise: finderPatternCounterclockwiseSet,
+            lengthCounterclockwise: finderPatternCounterclockwiseLength,
+            clockwise: finderPatternClockwiseSet,
+            lengthClockwise: finderPatternClockwiseLength
         };
     }
 
@@ -66,7 +74,7 @@ class HexagonRing {
      * @returns {number}
      */
     get bitCount() {
-        return this._slotCount - 2; // -2 for the finder pattern at start and end of the ring
+        return this._slotCount - this._finderPattern.lengthCounterclockwise - this._finderPattern.lengthClockwise;
     }
 
 
@@ -118,24 +126,19 @@ class HexagonRing {
     }
 
 
-    setFinderPattern(counterclockwise, clockwise) {
-        this._finderPattern['counterclockwise'] = counterclockwise;
-        this._finderPattern['clockwise'] = clockwise;
-    }
-
-
     getFinderPattern(direction='counterclockwise') {
         return this._finderPattern[direction];
     }
 
 
     isSlotSet(slotIndex) {
-        if (slotIndex === 0) {
-            return this._finderPattern['counterclockwise'];
-        } else if (slotIndex === this._slotCount-1) {
-            return this._finderPattern['clockwise'];
+        if (slotIndex < this._finderPattern.lengthCounterclockwise) {
+            return this._finderPattern.counterclockwise;
+        } else if (slotIndex >= this._slotCount - this._finderPattern.lengthClockwise) {
+            return this._finderPattern.clockwise;
         } else {
-            return !!this._data.getBit(slotIndex-1); // -1 to account for the counterclockwise finder pattern slot
+            // subtract the counterclockwise finder pattern
+            return !!this._data.getBit(slotIndex - this._finderPattern.lengthCounterclockwise);
         }
     }
 
@@ -196,11 +199,13 @@ class HexagonRing {
 
 
     getDataSlotLocation(dataSlotIndex, type='center') {
-        return this.getSlotLocation(dataSlotIndex+1, type); // +1 for the finder pattern at the start of the ring
+        // add the counterclockwise finder pattern
+        return this.getSlotLocation(dataSlotIndex + this._finderPattern.lengthCounterclockwise, type);
     }
 
 
     getFinderPatternSlotLocation(direction='counterclockwise', type='center') {
+        // gives the location of the first / last slot of the finder pattern
         if (direction === 'counterclockwise') {
             return this.getSlotLocation(0, type);
         } else {

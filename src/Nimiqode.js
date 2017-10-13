@@ -92,24 +92,23 @@ class Nimiqode {
          return NimiqodeHeader.calculateLength(numHexRings) + lengthPayload + lengthErrorCorrection;
     }
 
-    static createHexagonRing(index, setFinderPattern=false) {
-        const hexRing = new HexagonRing(NimiqodeSpecification.HEXRING_INNERMOST_RADIUS
+    static createHexagonRing(index) {
+        // all the rings have the counterclockwise and clockwise finder pattern set, just the innermost ring has the
+        // clockwise finder pattern unset.
+        return new HexagonRing(NimiqodeSpecification.HEXRING_INNERMOST_RADIUS
             + index * NimiqodeSpecification.HEXRING_RING_DISTANCE, NimiqodeSpecification.HEXRING_BORDER_RADIUS,
             NimiqodeSpecification.HEXRING_START_END_OFFSET, NimiqodeSpecification.HEXRING_SLOT_DISTANCE,
-            NimiqodeSpecification.HEXRING_SLOT_LENGTH);
-        if (setFinderPattern) {
-            // all the rings have the counterclockwise and clockwise finder pattern set, just the innermost ring has the
-            // clockwise finder pattern unset.
-            hexRing.setFinderPattern(true, index!==0);
-        }
-        return hexRing;
+            NimiqodeSpecification.HEXRING_SLOT_LENGTH, index===0?
+                NimiqodeSpecification.HEXRING_FINDER_PATTERN_LENGTH_UNSET :
+                NimiqodeSpecification.HEXRING_FINDER_PATTERN_LENGTH_SET,
+            NimiqodeSpecification.HEXRING_FINDER_PATTERN_LENGTH_SET, index!==0, true);
     }
 
     _createHexagonRings(payloadLength, errorCorrectionLength) {
         let totalBits = 0;
         let hexagonRingCount = 0;
         do {
-            const hexRing = Nimiqode.createHexagonRing(hexagonRingCount, true);
+            const hexRing = Nimiqode.createHexagonRing(hexagonRingCount);
             this._hexagonRings.push(hexRing);
             totalBits += hexRing.bitCount;
             ++hexagonRingCount;

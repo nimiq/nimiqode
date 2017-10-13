@@ -9,7 +9,7 @@ class HexagonRingDetector {
         boundingHexagon.corners = boundingHexCorners;
         // create the innermost hexagon ring as we always have at least one hexagon ring
         const hexagonRings = [];
-        hexagonRings.push(Nimiqode.createHexagonRing(0, false));
+        hexagonRings.push(Nimiqode.createHexagonRing(0));
         // From that one hexagon ring calculate a preliminary transformation matrix. We can take any 4 of the 6 points
         // in correspondence.
         const innerCorners = hexagonRings[0].virtualCorners;
@@ -33,10 +33,7 @@ class HexagonRingDetector {
             (hexagonRings[hexagonRingCount-1].outerRadius + NimiqodeSpecification.HEXRING_LINE_WIDTH/3);
         const transformationMatrix = PerspectiveTransformationMatrix.fromScalingFactor(scalingFactor)
             .multiplyWithMatrix(preliminaryTransformationMatrix);
-        // set the finder pattern slots
-        for (const hexagonRing of hexagonRings) {
-            HexagonRingDetector._readFinderPatternSlots(hexagonRing, transformationMatrix, image);
-        }
+        // TODO check innermost finder pattern and swap if needed
         return [hexagonRings, transformationMatrix];
     }
 
