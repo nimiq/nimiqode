@@ -7,7 +7,7 @@ NimiqodeSpecification.MAX_FACTOR_ERROR_CORRECTION_DATA = 2;
 // hexagon rings
 NimiqodeSpecification.HEXRING_INNERMOST_RADIUS = 150;
 NimiqodeSpecification.HEXRING_BORDER_RADIUS = 50;
-NimiqodeSpecification.HEXRING_RING_DISTANCE = 50;
+NimiqodeSpecification.HEXRING_RING_DISTANCE = 25;
 NimiqodeSpecification.HEXRING_LINE_WIDTH = 10;
 NimiqodeSpecification.HEXRING_SLOT_LENGTH = 10;
 NimiqodeSpecification.HEXRING_SLOT_DISTANCE = 0;
