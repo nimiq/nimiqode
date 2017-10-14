@@ -114,6 +114,7 @@ class HexagonRingDetector {
 
         // check for special case of just one hexagon ring in nimiqode. In this case the only hexagon ring we have is
         // the one with index 0 in which one of the finder patterns is empty, i.e. not existent.
+        // TODO remove support for single ring nimiqode
         inversePerspectiveTransform.transform(finderPatternStartCCW);
         inversePerspectiveTransform.transform(finderPatternStartCW);
         const distanceFinderPatternCCW = finderPatternStartCCW.distanceTo(boundingHexagon.corners[0]);
@@ -363,6 +364,6 @@ class HexagonRingDetector {
         }
     }
 }
-HexagonRingDetector.SEARCH_LINE_WIDTH = 8;
+HexagonRingDetector.SEARCH_LINE_WIDTH = 6;
 HexagonRingDetector.SEARCH_NEIGHBOURHOOD_SIZE = 6;
 HexagonRingDetector.FINDER_PATTERN_MARK_DISTANCE_TOLERANCE = 1.2;

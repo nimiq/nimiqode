@@ -30,10 +30,6 @@ class GrayscaleImage {
         return this._pixels[y * this._width + x];
     }
 
-    setPixel(x, y, value) {
-        this._pixels[y * this._width + x] = value;
-    }
-
     static calculateRequiredBufferSize(width, height) {
         return width * height;
     }
@@ -59,6 +55,13 @@ class GrayscaleImage {
             outputData[i] = (77 * r + 150 * g + 29 * b + 128) >> 8;
         }
         return result;
+    }
+
+    invert() {
+        // invert without correcting for gamma. That's not optimal but gamma correction is computationally expensive.
+        for (let i=0; i<this._pixels.length; ++i) {
+            this._pixels[i] = 255 - this._pixels[i];
+        }
     }
 
     exportToRgba(buffer = null) {

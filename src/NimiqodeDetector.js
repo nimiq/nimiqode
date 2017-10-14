@@ -19,50 +19,68 @@ class NimiqodeDetector {
         // grayscale conversion.
         // Note that the rgba buffer has 4 bytes per pixel, thus size 4 * imageWidth * imageHeight.
         const imageBufferSize = GrayscaleImage.calculateRequiredBufferSize(imageWidth, imageHeight);
-        const image = GrayscaleImage.fromRgba(rgbaImage,
+        const grayscaleImage = GrayscaleImage.fromRgba(rgbaImage,
             new Uint8ClampedArray(rgbaImage.data.buffer, 0, imageBufferSize));
-        if (debugCallback) {
-            debugCallback('grayscale-image', image);
+        const binaryImage = new GrayscaleImage(imageWidth, imageHeight,
+            new Uint8ClampedArray(rgbaImage.data.buffer, imageBufferSize, imageBufferSize));
+
+        // try to scan the inverted and not inverted image
+        for (let i=0; i<2; ++i) {
+            grayscaleImage.invert();
+            if (debugCallback) {
+                debugCallback('grayscale-image', grayscaleImage);
+            }
+            try {
+                // binarize
+                const binarizerBufferSize = Binarizer.calculateRequiredBufferSize(imageWidth, imageHeight);
+                const binarizerBuffer = new Uint8ClampedArray(rgbaImage.data.buffer, 2*imageBufferSize,
+                    binarizerBufferSize);
+                Binarizer.binarize(grayscaleImage, binaryImage, binarizerBuffer);
+                if (debugCallback) {
+                    debugCallback('binary-image', binaryImage);
+                }
+                // detect bounding rect
+                const boundingRect = BoundingRectDetector.detectBoundingRect(binaryImage);
+                if (debugCallback) {
+                    debugCallback('bounding-rect', boundingRect);
+                }
+                // detect bounding hexagon
+                const hexRingDetectorBufferSize = BoundingHexagonDetector.calculateRequiredBufferSize(boundingRect);
+                const hexRingDetectorBuffer = new Uint8ClampedArray(rgbaImage.data.buffer,
+                    2*imageBufferSize + binarizerBufferSize, hexRingDetectorBufferSize);
+                const boundingHexagon = BoundingHexagonDetector.detectBoundingHexagon(boundingRect, binaryImage,
+                    hexRingDetectorBuffer, debugCallback);
+                if (debugCallback) {
+                    debugCallback('bounding-hexagon', boundingHexagon);
+                }
+                // detect hexagon rings
+                const [hexagonRings, perspectiveTransform] = HexagonRingDetector.detectHexagonRings(boundingHexagon,
+                    binaryImage, debugCallback);
+                // read the data bits
+                const totalBits = hexagonRings.reduce((count, hexRing) => count + hexRing.bitCount, 0);
+                const data = new BitArray(totalBits);
+                Nimiqode.assignHexagonRingData(hexagonRings, data);
+                for (const hexRing of hexagonRings) {
+                    HexagonRingDetector.readDataSlots(hexRing, perspectiveTransform, binaryImage);
+                }
+                if (debugCallback) {
+                    debugCallback('hexagon-rings', [hexagonRings, perspectiveTransform]);
+                    debugCallback('data', data);
+                }
+                const nimiqode = await new Nimiqode(hexagonRings, data);
+                if (debugCallback) {
+                    debugCallback('nimiqode', nimiqode);
+                }
+                return nimiqode;
+            } catch(e) {
+                if (i === 1) {
+                    // we tried the inverted and not inverted image and both failed
+                    throw e;
+                }
+            }
+            // we just want to see the debug info for the first try
+            debugCallback = null;
         }
-        // binarize
-        const binarizerBufferSize = Binarizer.calculateRequiredBufferSize(imageWidth, imageHeight);
-        const binarizerBuffer = new Uint8ClampedArray(rgbaImage.data.buffer, imageBufferSize, binarizerBufferSize);
-        Binarizer.binarize(image, image, binarizerBuffer); // this overwrites the grayscale image
-        if (debugCallback) {
-            debugCallback('binary-image', image);
-        }
-        // detect bounding rect
-        const boundingRect = BoundingRectDetector.detectBoundingRect(image);
-        if (debugCallback) {
-            debugCallback('bounding-rect', boundingRect);
-        }
-        // detect bounding hexagon
-        const hexRingDetectorBufferSize = BoundingHexagonDetector.calculateRequiredBufferSize(boundingRect);
-        const hexRingDetectorBuffer = new Uint8ClampedArray(rgbaImage.data.buffer,
-            imageBufferSize + binarizerBufferSize, hexRingDetectorBufferSize);
-        const boundingHexagon = BoundingHexagonDetector.detectBoundingHexagon(boundingRect, image,
-            hexRingDetectorBuffer, debugCallback);
-        if (debugCallback) {
-            debugCallback('bounding-hexagon', boundingHexagon);
-        }
-        // detect hexagon rings
-        const [hexagonRings, perspectiveTransform] = HexagonRingDetector.detectHexagonRings(boundingHexagon, image,
-            debugCallback);
-        // read the data bits
-        const totalBits = hexagonRings.reduce((count, hexRing) => count + hexRing.bitCount, 0);
-        const data = new BitArray(totalBits);
-        Nimiqode.assignHexagonRingData(hexagonRings, data);
-        for (const hexRing of hexagonRings) {
-            HexagonRingDetector.readDataSlots(hexRing, perspectiveTransform, image);
-        }
-        if (debugCallback) {
-            debugCallback('hexagon-rings', [hexagonRings, perspectiveTransform]);
-            debugCallback('data', data);
-        }
-        const nimiqode = await new Nimiqode(hexagonRings, data);
-        if (debugCallback) {
-            debugCallback('nimiqode', nimiqode);
-        }
-        return nimiqode;
+
     }
 }

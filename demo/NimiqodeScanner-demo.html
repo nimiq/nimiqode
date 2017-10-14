@@ -122,9 +122,6 @@
                 }
                 console.log('bit error rate:', bitErrors / referenceNimiqode._data.length, 'absolute:', bitErrors);
             }
-        } else if (eventType === 'nimiqode') {
-            // show the decoded message. Do it on requestAnimationFrame such that the canvases get painted first
-            requestAnimationFrame(() => alert('nimiqode data: ' + String.fromCharCode.apply(String, data._payload)));
         }
     }
 
@@ -132,7 +129,10 @@
         if (camera.isFilming) {
             const snapshot = camera.takeSnapshot();
             try {
-                await NimiqodeDetector.detect(snapshot, debugCallback);
+                const nimiqode = await NimiqodeDetector.detect(snapshot, debugCallback);
+                // show the decoded message. Do it on requestAnimationFrame such that the canvases get painted first
+                requestAnimationFrame(() => alert('nimiqode data: ' + String.fromCharCode.apply(String,
+                    nimiqode._payload)));
             } catch(e) {
                 if (e.message.startsWith('Not found.')) {
                     console.log(e.message);
