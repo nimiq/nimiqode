@@ -104,7 +104,6 @@ class HexagonRingDetector {
             HexagonRingDetector._findFinderPatternStart(boundingHexagon, 'counterclockwise', image);
         const finderPatternStartCW =
             HexagonRingDetector._findFinderPatternStart(boundingHexagon, 'clockwise', image);
-        // Now traverse the pattern (do this before checking single hex ring case to use not transformed points)
         const [marksFoundCCW, markDistancesCCW, debugOriginalMarkPointsCCW] =
             HexagonRingDetector._traverseFinderPattern(boundingHexagon, finderPatternStartCCW,
                 inversePerspectiveTransform, image, debugCallback);
@@ -112,34 +111,6 @@ class HexagonRingDetector {
             HexagonRingDetector._traverseFinderPattern(boundingHexagon, finderPatternStartCW,
                 inversePerspectiveTransform, image, debugCallback);
 
-        // check for special case of just one hexagon ring in nimiqode. In this case the only hexagon ring we have is
-        // the one with index 0 in which one of the finder patterns is empty, i.e. not existent.
-        // TODO remove support for single ring nimiqode
-        inversePerspectiveTransform.transform(finderPatternStartCCW);
-        inversePerspectiveTransform.transform(finderPatternStartCW);
-        const distanceFinderPatternCCW = finderPatternStartCCW.distanceTo(boundingHexagon.corners[0]);
-        const distanceFinderPatternCW = finderPatternStartCW.distanceTo(boundingHexagon.corners[0]);
-        // on shorter distance we encountered the pattern, on larger distance only when > 1 hex ring.
-        const shorterDistanceFinderPattern = Math.min(distanceFinderPatternCCW, distanceFinderPatternCW);
-        const longerDistanceFinderPattern = Math.max(distanceFinderPatternCCW, distanceFinderPatternCW);
-        const scaleFactor = shorterDistanceFinderPattern / NimiqodeSpecification.HEXRING_START_END_OFFSET;
-        const assumedSlotLength = scaleFactor * NimiqodeSpecification.HEXRING_SLOT_LENGTH;
-        const assumedSlotDistance = scaleFactor * NimiqodeSpecification.HEXRING_SLOT_DISTANCE;
-        const assumedDistanceNextSlot = shorterDistanceFinderPattern + assumedSlotLength + assumedSlotDistance;
-        if (longerDistanceFinderPattern >= assumedDistanceNextSlot) {
-            // seems like the finder pattern is empty and the slot we saw was the second or later. So assume we have
-            // only one ring.
-            if (debugCallback) {
-                const shorterCCW = distanceFinderPatternCCW < distanceFinderPatternCW;
-                debugCallback('finder-pattern', {
-                    counterclockwise: shorterCCW? [finderPatternStartCCW] : [],
-                    clockwise: shorterCCW? [] : [finderPatternStartCW]
-                });
-            }
-            return 1;
-        }
-
-        // Okay, we have more than one hex ring, so the results we got by traversing the pattern is valid.
         if (debugCallback) {
             debugCallback('finder-pattern', {
                 counterclockwise: debugOriginalMarkPointsCCW,

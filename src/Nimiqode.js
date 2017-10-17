@@ -113,7 +113,8 @@ class Nimiqode {
             this._hexagonRings.push(hexRing);
             totalBits += hexRing.bitCount;
             ++hexagonRingCount;
-        } while (totalBits < Nimiqode.calculateLength(this._hexagonRings.length, payloadLength, errorCorrectionLength));
+        } while (totalBits < Nimiqode.calculateLength(this._hexagonRings.length, payloadLength, errorCorrectionLength)
+            || hexagonRingCount < 2); // have at least 2 hexagon rings as single rings can't be decoded
         return totalBits;
     }
 
