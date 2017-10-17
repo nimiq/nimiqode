@@ -27,25 +27,29 @@ class Nimiqode {
                 ${Math.pow(2, NimiqodeSpecification.HEADER_LENGTH_PAYLOAD_LENGTH)} bytes.`);
         }
         const payloadBitArray = new BitArray(payload);
-        this._version = version;
+        this._payload = payload;
         const preliminaryErrorCorrectionLength = Math.ceil(payloadBitArray.length * errorCorrectionFactor);
         this._hexagonRings = [];
         const dataLength = this._createHexagonRings(payloadBitArray.length, preliminaryErrorCorrectionLength);
+        const checksum = CRC16.crc16(payload);
 
         // create bit arrays
         this._data = new BitArray(dataLength);
         const headerLength = NimiqodeHeader.calculateLength(this._hexagonRings.length);
-        this._header = new BitArray(this._data, 0, headerLength);
+        const header = new BitArray(this._data, 0, headerLength);
         // Use all of the remaining bits which can be more than the preliminaryErrorCorrectionLength bits by filling up
         // empty leftover space in the last hexagon ring.
         const errorCorrectionLength = dataLength - headerLength - payloadBitArray.length;
-        this._encodedPayload = new BitArray(this._data, headerLength, headerLength + payloadBitArray.length +
+        const encodedPayload = new BitArray(this._data, headerLength, headerLength + payloadBitArray.length +
             errorCorrectionLength);
 
         // assemble data
-        await NimiqodeHeader.write(this._header, version, payloadBitArray.length, errorCorrectionLength,
+        await NimiqodeHeader.write(header, version, payloadBitArray.length, errorCorrectionLength, checksum,
             new Array(this._hexagonRings.length).fill(0));
-        await this._writeEncodedPayload(payloadBitArray.toArray(), errorCorrectionLength);
+        const encodedPayloadBits = await LDPC.encode(payloadBitArray.toArray(), errorCorrectionLength);
+        for (let i=0; i<encodedPayload.length; ++i) {
+            encodedPayload.setValue(i, encodedPayloadBits[i]);
+        }
         Nimiqode.assignHexagonRingData(this._hexagonRings, this._data);
         return this;
     }
@@ -54,34 +58,31 @@ class Nimiqode {
         this._hexagonRings = hexagonRings;
         this._data = data;
         const headerLength = NimiqodeHeader.calculateLength(this._hexagonRings.length);
-        this._header = new BitArray(this._data, 0, headerLength);
-        const [version, payloadLength, errorCorrectionLength, hexRingMasks] =
-            await NimiqodeHeader.read(this._header, hexagonRings.length);
-        console.log(version, payloadLength, errorCorrectionLength, headerLength, data.length);
+        const header = new BitArray(this._data, 0, headerLength);
+        const [version, payloadLength, errorCorrectionLength, checksum, hexRingMasks] =
+            await NimiqodeHeader.read(header, hexagonRings.length);
         if (version !== 0) {
-            throw Error('Unsupported version.');
+            throw Error('Illegal nimiqode: Unsupported version.');
         }
         if (headerLength + payloadLength + errorCorrectionLength !== data.length) {
-            throw Error('Wrong data length. Probably recognized wrong number of hexagon rings.');
+            throw Error('Illegal nimiqode: Wrong data length.'); // Probably recognized wrong number of hexagon rings.
         }
-        this._version = version;
         // decode payload
         const encodedPayloadBitArray = new BitArray(this._data, headerLength);
         const payloadBits = await LDPC.decode(encodedPayloadBitArray.toArray(), payloadLength, errorCorrectionLength);
         this._payload = new Uint8Array(payloadLength / 8); // in byte
-        this._payloadBitArray = new BitArray(this._payload);
+        const payloadBitArray = new BitArray(this._payload);
         for (let i=0; i<payloadLength; ++i) {
-            this._payloadBitArray.setValue(i, payloadBits[i]);
+            payloadBitArray.setValue(i, payloadBits[i]);
+        }
+        if (CRC16.crc16(this._payload) !== checksum) {
+            throw Error('Illegal nimiqode: Checksum mismatch.');
         }
         return this;
     }
 
     get payload() {
         return this._payload;
-    }
-
-    get version() {
-        return this._version;
     }
 
     get hexagonRings() {
@@ -121,13 +122,6 @@ class Nimiqode {
         for (const hexRing of hexagonRings) {
             hexRing.data = new BitArray(data, handledBits, handledBits + hexRing.bitCount);
             handledBits += hexRing.bitCount;
-        }
-    }
-
-    async _writeEncodedPayload(payloadBits, parityLength) {
-        const encodedPayload = await LDPC.encode(payloadBits, parityLength);
-        for (let i=0; i<encodedPayload.length; ++i) {
-            this._encodedPayload.setValue(i, encodedPayload[i]);
         }
     }
 }

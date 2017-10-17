@@ -12,11 +12,12 @@ class NimiqodeHeader {
         return NimiqodeSpecification.HEADER_LENGTH_VERSION +
             NimiqodeSpecification.HEADER_LENGTH_PAYLOAD_LENGTH +
             NimiqodeSpecification.HEADER_LENGTH_ERROR_CORRECTION_LENGTH +
+            NimiqodeSpecification.HEADER_LENGTH_CHECKSUM +
             NimiqodeSpecification.HEADER_LENGTH_HEXRING_MASK * numHexRings;
     }
 
 
-    static async write(bitArray, version, payloadLength, errorCorrectionLength, hexRingMasks) {
+    static async write(bitArray, version, payloadLength, errorCorrectionLength, checksum, hexRingMasks) {
         if (payloadLength % 8 !== 0) {
             throw Error('Only whole bytes allowed for payload.');
         }
@@ -32,18 +33,22 @@ class NimiqodeHeader {
         bitArray.writeUnsignedInteger(writeIndex, errorCorrectionLength,
             NimiqodeSpecification.HEADER_LENGTH_ERROR_CORRECTION_LENGTH);
         writeIndex += NimiqodeSpecification.HEADER_LENGTH_ERROR_CORRECTION_LENGTH;
+        // write the checksum
+        bitArray.writeUnsignedInteger(writeIndex, checksum,
+            NimiqodeSpecification.HEADER_LENGTH_CHECKSUM);
+        writeIndex += NimiqodeSpecification.HEADER_LENGTH_CHECKSUM;
         // write the hex ring masks
         for (const hexRingMask of hexRingMasks) {
             bitArray.writeUnsignedInteger(writeIndex, hexRingMask, NimiqodeSpecification.HEADER_LENGTH_HEXRING_MASK);
             writeIndex += NimiqodeSpecification.HEADER_LENGTH_HEXRING_MASK;
         }
-        // extract the data bits that should be encoded
+        // extract the header data bits that should be encoded
         const headerDataLength = writeIndex;
-        const headerDataBits = new Array(headerDataLength);
+        const headerDataBits = new Uint8Array(headerDataLength);
         for (let i=0; i<headerDataLength; ++i) {
             headerDataBits[i] = bitArray.getBit(i);
         }
-        // write the header error correction
+        // write the encoded header
         const headerErrorCorrectionLength =
             Math.ceil(headerDataLength * NimiqodeSpecification.HEADER_FACTOR_ERROR_CORRECTION_HEADER);
         const encodedHeaderData = await LDPC.encode(headerDataBits, headerErrorCorrectionLength);
@@ -76,6 +81,10 @@ class NimiqodeHeader {
         const errorCorrectionLength = NimiqodeHeader._readUnsignedInteger(decoded, readIndex,
             NimiqodeSpecification.HEADER_LENGTH_ERROR_CORRECTION_LENGTH);
         readIndex += NimiqodeSpecification.HEADER_LENGTH_ERROR_CORRECTION_LENGTH;
+        // read the checksum
+        const checksum = NimiqodeHeader._readUnsignedInteger(decoded, readIndex,
+            NimiqodeSpecification.HEADER_LENGTH_CHECKSUM);
+        readIndex += NimiqodeSpecification.HEADER_LENGTH_CHECKSUM;
         // read the hex ring masks
         const hexRingMasks = [];
         for (let i=0; i<hexRingCount; ++i) {
@@ -83,7 +92,7 @@ class NimiqodeHeader {
                 NimiqodeSpecification.HEADER_LENGTH_HEXRING_MASK));
             readIndex += NimiqodeSpecification.HEADER_LENGTH_HEXRING_MASK;
         }
-        return [version, payloadLength, errorCorrectionLength, hexRingMasks];
+        return [version, payloadLength, errorCorrectionLength, checksum, hexRingMasks];
     }
 
 
