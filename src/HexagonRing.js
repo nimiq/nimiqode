@@ -126,11 +126,6 @@ class HexagonRing {
     }
 
 
-    getFinderPattern(direction='counterclockwise') {
-        return this._finderPattern[direction];
-    }
-
-
     isSlotSet(slotIndex) {
         if (slotIndex < this._finderPattern.lengthCounterclockwise) {
             return this._finderPattern.counterclockwise;

@@ -79,7 +79,7 @@ class NimiqodeDetector {
                 }
             }
             // we just want to see the debug info for the first try
-            debugCallback = null;
+            //debugCallback = null;
         }
 
     }

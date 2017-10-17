@@ -31,9 +31,17 @@ class HexagonRingDetector {
         // image are a little thinner.
         const scalingFactor = hexagonRings[0].outerRadius /
             (hexagonRings[hexagonRingCount-1].outerRadius + NimiqodeSpecification.HEXRING_LINE_WIDTH/3);
-        const transformationMatrix = PerspectiveTransformationMatrix.fromScalingFactor(scalingFactor)
+        let transformationMatrix = PerspectiveTransformationMatrix.fromScalingFactor(scalingFactor)
             .multiplyWithMatrix(preliminaryTransformationMatrix);
-        // TODO check innermost finder pattern and swap if needed
+
+        // if the image is mirrored, build a mirrored transformation matrix
+        if (HexagonRingDetector._isFinderPatternMirrored(hexagonRings[0], transformationMatrix, image)) {
+            transformationMatrix = PerspectiveTransformationMatrix.fromCorrespondingPoints(
+                innerCorners[1], innerCorners[2], innerCorners[4], innerCorners[5],
+                boundingHexCorners[5], boundingHexCorners[4], boundingHexCorners[2], boundingHexCorners[1]);
+            transformationMatrix = PerspectiveTransformationMatrix.fromScalingFactor(scalingFactor)
+                .multiplyWithMatrix(transformationMatrix);
+        }
         return [hexagonRings, transformationMatrix];
     }
 
@@ -313,16 +321,16 @@ class HexagonRingDetector {
     }
 
 
-    static _readFinderPatternSlots(hexagonRing, transformationMatrix, image) {
-        const [counterclockwiseLocation,] = hexagonRing.getFinderPatternSlotLocation('counterclockwise');
+    static _isFinderPatternMirrored(innermostHexRing, transformationMatrix, image) {
+        const [counterclockwiseLocation,] = innermostHexRing.getFinderPatternSlotLocation('counterclockwise');
         transformationMatrix.transform(counterclockwiseLocation);
         const counterclockwiseSet = HexagonRingDetector._containsBlackInNeighbourhood(counterclockwiseLocation.x,
             counterclockwiseLocation.y, image, 2);
-        const [clockwiseLocation,] = hexagonRing.getFinderPatternSlotLocation('clockwise');
+        const [clockwiseLocation,] = innermostHexRing.getFinderPatternSlotLocation('clockwise');
         transformationMatrix.transform(clockwiseLocation);
         const clockwiseSet = HexagonRingDetector._containsBlackInNeighbourhood(clockwiseLocation.x,
             clockwiseLocation.y, image, 2);
-        hexagonRing.setFinderPattern(counterclockwiseSet, clockwiseSet);
+        return !counterclockwiseSet && clockwiseSet;
     }
 
 
