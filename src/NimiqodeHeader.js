@@ -85,11 +85,16 @@ class NimiqodeHeader {
         const maskCount = NimiqodeHeader.calculateMaskCount(hexRings);
         const headerLength = NimiqodeHeader.calculateLength(maskCount);
         if (data.length !== headerLength) {
-            throw Error('Wrong header length');
+            throw Error('Illegal nimiqode: Wrong header length');
         }
         const headerDataLength = NimiqodeHeader._calculateDataLength(maskCount);
         // decode the header
-        const decoded = await LDPC.decode(data.toArray(), headerDataLength, headerLength - headerDataLength);
+        let decoded;
+        try {
+            decoded = await LDPC.decode(data.toArray(), headerDataLength, headerLength - headerDataLength);
+        } catch(e) {
+            throw Error('Illegal nimiqode: Failed to decode header.');
+        }
         let readIndex = 0;
         // version
         const version = NimiqodeHeader._readUnsignedInteger(decoded, readIndex,

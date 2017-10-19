@@ -74,7 +74,12 @@ class Nimiqode {
         const encodedPayload = new BitArray(this._data, headerLength, this._data.length, true); // a copy
         this._maskHexagonRings(hexRingMasks, encodedPayload); // unmask by applying the mask again
         // decode the payload
-        const payloadBits = await LDPC.decode(encodedPayload.toArray(), payloadLength, errorCorrectionLength);
+        let payloadBits;
+        try {
+            payloadBits = await LDPC.decode(encodedPayload.toArray(), payloadLength, errorCorrectionLength);
+        } catch(e) {
+            throw Error('Illegal nimiqode: Failed to decode payload.');
+        }
         this._payload = new Uint8Array(payloadLength / 8); // in byte
         const payloadBitArray = new BitArray(this._payload);
         for (let i=0; i<payloadLength; ++i) {
