@@ -1,19 +1,40 @@
 class NimiqodeHeader {
 
-    static calculateLength(numHexRings) {
-        const headerDataLength = NimiqodeHeader.calculateDataLength(numHexRings);
+    static calculateMaskCount(hexRings) {
+        // Check how many hexagon rings need masking where rings that are completely filled with
+        // the header don't get a mask as the header doesn't get masked.
+        let maskCount = hexRings.length;
+        let handledHeaderBits = 0;
+        for (let i=0; i<hexRings.length; ++i) {
+            if (hexRings[i].bitCount <= NimiqodeHeader.calculateLength(maskCount) - handledHeaderBits) {
+                // The ring gets completely filled with header data only, thus we don't need a mask for this ring.
+                // Note that by lowering the maskCount, the header gets shorter and we might get into the corner
+                // case that then the ring doesn't get completely filled anymore. However, we just leave this case
+                // as it is and don't define a mask for the few excess bits and leave them unmasked.
+                --maskCount;
+                handledHeaderBits += hexRings[i].bitCount;
+            } else {
+                break;
+            }
+        }
+        return maskCount;
+    }
+
+
+    static calculateLength(maskCount) {
+        const headerDataLength = NimiqodeHeader._calculateDataLength(maskCount);
         const headerErrorCorrectionLength =
             Math.ceil(headerDataLength * NimiqodeSpecification.HEADER_FACTOR_ERROR_CORRECTION_HEADER);
         return headerDataLength + headerErrorCorrectionLength;
     }
 
 
-    static calculateDataLength(numHexRings) {
+    static _calculateDataLength(maskCount) {
         return NimiqodeSpecification.HEADER_LENGTH_VERSION +
             NimiqodeSpecification.HEADER_LENGTH_PAYLOAD_LENGTH +
             NimiqodeSpecification.HEADER_LENGTH_ERROR_CORRECTION_LENGTH +
             NimiqodeSpecification.HEADER_LENGTH_CHECKSUM +
-            NimiqodeSpecification.HEADER_LENGTH_HEXRING_MASK * numHexRings;
+            NimiqodeSpecification.HEADER_LENGTH_HEXRING_MASK * maskCount;
     }
 
 
@@ -60,12 +81,13 @@ class NimiqodeHeader {
     }
 
 
-    static async read(data, hexRingCount) {
-        const headerLength = NimiqodeHeader.calculateLength(hexRingCount);
+    static async read(data, hexRings) {
+        const maskCount = NimiqodeHeader.calculateMaskCount(hexRings);
+        const headerLength = NimiqodeHeader.calculateLength(maskCount);
         if (data.length !== headerLength) {
             throw Error('Wrong header length');
         }
-        const headerDataLength = NimiqodeHeader.calculateDataLength(hexRingCount);
+        const headerDataLength = NimiqodeHeader._calculateDataLength(maskCount);
         // decode the header
         const decoded = await LDPC.decode(data.toArray(), headerDataLength, headerLength - headerDataLength);
         let readIndex = 0;
@@ -87,7 +109,7 @@ class NimiqodeHeader {
         readIndex += NimiqodeSpecification.HEADER_LENGTH_CHECKSUM;
         // read the hex ring masks
         const hexRingMasks = [];
-        for (let i=0; i<hexRingCount; ++i) {
+        for (let i=0; i<maskCount; ++i) {
             hexRingMasks.push(NimiqodeHeader._readUnsignedInteger(decoded, readIndex,
                 NimiqodeSpecification.HEADER_LENGTH_HEXRING_MASK));
             readIndex += NimiqodeSpecification.HEADER_LENGTH_HEXRING_MASK;

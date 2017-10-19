@@ -77,12 +77,12 @@ class BitArray {
         this._length = end - start;
 
         if (copy) {
-            // TODO have to mind byteOffset?
-            const startByte = Math.floor(start / 8);
-            const byteLength = Math.ceil(this._length / 8);
-            const sourceView = new Uint8Array(typedArray.buffer, startByte, byteLength); // a view without copying
-            this._bytes = new Uint8Array(sourceView); // copies the bytes
             this._offset = start % 8;
+            const startByte = Math.floor(start / 8);
+            const byteLength = Math.ceil((this._length + this._offset) / 8);
+            // a view without copying
+            const sourceView = new Uint8Array(typedArray.buffer, startByte+typedArray.byteOffset, byteLength);
+            this._bytes = new Uint8Array(sourceView); // copies the bytes
         } else {
             if (!(typedArray instanceof Uint8Array)) {
                 typedArray = new Uint8Array(typedArray.buffer); // create an Uint8 view without copying

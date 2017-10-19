@@ -22,6 +22,18 @@ NimiqodeSpecification.HEADER_LENGTH_ERROR_CORRECTION_LENGTH = 13; // specified i
 // specified in bit instead of byte (factor 8, 3 bit more) and can be 4 times as high as data length (two bits more) to
 // account for error correction factors > 1 and extra error correction data to fill up the last hex ring
 NimiqodeSpecification.HEADER_LENGTH_CHECKSUM = 16; // we're using CRC16
-NimiqodeSpecification.HEADER_LENGTH_HEXRING_MASK = 2; // times the number of hexagon rings
+NimiqodeSpecification.HEADER_LENGTH_HEXRING_MASK = 3; // times the number of hexagon rings
 NimiqodeSpecification.HEADER_FACTOR_ERROR_CORRECTION_HEADER = 1; // this is a fixed number and part of the specification
 
+
+// masks. A 1 means a bit flip.
+NimiqodeSpecification.DATA_MASKS = [
+    [0],
+    [1,0],
+    [0,1],
+    [1,0,0],
+    [0,1,0],
+    [0,0,1],
+    [1,1,0],
+    [1,0,1]
+];

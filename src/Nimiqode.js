@@ -35,7 +35,8 @@ class Nimiqode {
 
         // create bit arrays
         this._data = new BitArray(dataLength);
-        const headerLength = NimiqodeHeader.calculateLength(this._hexagonRings.length);
+        const hexRingMaskCount = NimiqodeHeader.calculateMaskCount(this._hexagonRings);
+        const headerLength = NimiqodeHeader.calculateLength(hexRingMaskCount);
         const header = new BitArray(this._data, 0, headerLength);
         // Use all of the remaining bits which can be more than the preliminaryErrorCorrectionLength bits by filling up
         // empty leftover space in the last hexagon ring.
@@ -44,12 +45,13 @@ class Nimiqode {
             errorCorrectionLength);
 
         // assemble data
-        await NimiqodeHeader.write(header, version, payloadBitArray.length, errorCorrectionLength, checksum,
-            new Array(this._hexagonRings.length).fill(0));
         const encodedPayloadBits = await LDPC.encode(payloadBitArray.toArray(), errorCorrectionLength);
         for (let i=0; i<encodedPayload.length; ++i) {
             encodedPayload.setValue(i, encodedPayloadBits[i]);
         }
+        const hexRingMasks = this._maskHexagonRings(hexRingMaskCount, encodedPayload);
+        await NimiqodeHeader.write(header, version, payloadBitArray.length, errorCorrectionLength, checksum,
+            hexRingMasks);
         Nimiqode.assignHexagonRingData(this._hexagonRings, this._data);
         return this;
     }
@@ -57,19 +59,22 @@ class Nimiqode {
     async _constructFromScan(hexagonRings, data) {
         this._hexagonRings = hexagonRings;
         this._data = data;
-        const headerLength = NimiqodeHeader.calculateLength(this._hexagonRings.length);
+        const hexRingMaskCount = NimiqodeHeader.calculateMaskCount(hexagonRings);
+        const headerLength = NimiqodeHeader.calculateLength(hexRingMaskCount);
         const header = new BitArray(this._data, 0, headerLength);
         const [version, payloadLength, errorCorrectionLength, checksum, hexRingMasks] =
-            await NimiqodeHeader.read(header, hexagonRings.length);
+            await NimiqodeHeader.read(header, hexagonRings);
         if (version !== 0) {
             throw Error('Illegal nimiqode: Unsupported version.');
         }
         if (headerLength + payloadLength + errorCorrectionLength !== data.length) {
             throw Error('Illegal nimiqode: Wrong data length.'); // Probably recognized wrong number of hexagon rings.
         }
-        // decode payload
-        const encodedPayloadBitArray = new BitArray(this._data, headerLength);
-        const payloadBits = await LDPC.decode(encodedPayloadBitArray.toArray(), payloadLength, errorCorrectionLength);
+        // unmask the payload
+        const encodedPayload = new BitArray(this._data, headerLength, this._data.length, true); // a copy
+        this._maskHexagonRings(hexRingMasks, encodedPayload); // unmask by applying the mask again
+        // decode the payload
+        const payloadBits = await LDPC.decode(encodedPayload.toArray(), payloadLength, errorCorrectionLength);
         this._payload = new Uint8Array(payloadLength / 8); // in byte
         const payloadBitArray = new BitArray(this._payload);
         for (let i=0; i<payloadLength; ++i) {
@@ -89,12 +94,14 @@ class Nimiqode {
         return this._hexagonRings;
     }
 
-    static calculateLength(numHexRings, lengthPayload, lengthErrorCorrection) {
-         return NimiqodeHeader.calculateLength(numHexRings) + lengthPayload + lengthErrorCorrection;
+    static calculateLength(hexRings, lengthPayload, lengthErrorCorrection) {
+        const hexRingMaskCount = NimiqodeHeader.calculateMaskCount(hexRings);
+        return NimiqodeHeader.calculateLength(hexRingMaskCount) + lengthPayload + lengthErrorCorrection;
     }
 
     static createHexagonRing(index) {
-        // all the rings have the counterclockwise and clockwise finder pattern set, just the innermost ring has the
+        // Index 0 is the innermost ring.
+        // All the rings have the counterclockwise and clockwise finder pattern set, just the innermost ring has the
         // clockwise finder pattern unset.
         return new HexagonRing(NimiqodeSpecification.HEXRING_INNERMOST_RADIUS
             + index * NimiqodeSpecification.HEXRING_RING_DISTANCE, NimiqodeSpecification.HEXRING_BORDER_RADIUS,
@@ -113,7 +120,7 @@ class Nimiqode {
             this._hexagonRings.push(hexRing);
             totalBits += hexRing.bitCount;
             ++hexagonRingCount;
-        } while (totalBits < Nimiqode.calculateLength(this._hexagonRings.length, payloadLength, errorCorrectionLength)
+        } while (totalBits < Nimiqode.calculateLength(this._hexagonRings, payloadLength, errorCorrectionLength)
             || hexagonRingCount < 2); // have at least 2 hexagon rings as single rings can't be decoded
         return totalBits;
     }
@@ -124,5 +131,23 @@ class Nimiqode {
             hexRing.data = new BitArray(data, handledBits, handledBits + hexRing.bitCount);
             handledBits += hexRing.bitCount;
         }
+    }
+
+
+    _maskHexagonRings(maskCountOrMasks, dataToMask) {
+        // mask the data assigned to the hex rings
+        const masks = [];
+        const givenMasks = Array.isArray(maskCountOrMasks)? maskCountOrMasks : null;
+        const maskCount = givenMasks? givenMasks.length : maskCountOrMasks;
+        let hexRingEnd = dataToMask.length;
+        for (let i=0; i<maskCount; ++i) {
+            const hexRing = this._hexagonRings[this._hexagonRings.length - i - 1];
+            const hexRingDataToMask = new BitArray(dataToMask, Math.max(0, hexRingEnd - hexRing.bitCount), hexRingEnd);
+            const mask = givenMasks? givenMasks[givenMasks.length - i - 1] : Masking.findBestMask(hexRingDataToMask);
+            Masking.applyMask(mask, hexRingDataToMask);
+            hexRingEnd -= hexRingDataToMask.length;
+            masks.unshift(mask);
+        }
+        return masks;
     }
 }

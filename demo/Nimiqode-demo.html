@@ -12,6 +12,7 @@
     <script src="../src/NimiqodeSpecification.js"></script>
     <script src="../src/NimiqodeHeader.js"></script>
     <script src="../src/CRC16.js"></script>
+    <script src="../src/Masking.js"></script>
     <script src="../src/Nimiqode.js"></script>
     <script src="../src/NimiqodeRenderer.js"></script>
     <script type="text/javascript">
@@ -88,8 +89,8 @@
         const preliminaryErrorCorrectionLength = Math.ceil(data.length * 8 * errorCorrectionFactor);
         document.getElementById('info-data-length').textContent = `Data length: ${data.length * 8}
             (${data.length} byte), Error encoding length: ${preliminaryErrorCorrectionLength} +
-            ${nimiqode._data.length - NimiqodeHeader.calculateLength(nimiqode._hexagonRings.length) -
-            data.length * 8 - preliminaryErrorCorrectionLength} filling up free space`;
+            ${nimiqode._data.length - NimiqodeHeader.calculateLength(NimiqodeHeader.calculateMaskCount(
+                nimiqode._hexagonRings)) - data.length * 8 - preliminaryErrorCorrectionLength} filling up free space`;
     }
 
     document.querySelectorAll('input').forEach(input => input.addEventListener('input', render));
